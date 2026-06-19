@@ -132,7 +132,9 @@ export default function AboutClient({
       </div>
 
       <div className="px-5 sm:px-8 md:px-16 pb-10 md:pb-16 relative">
-        <div className="w-24 h-24 md:w-32 md:h-32 rounded-full border-4 border-white dark:border-slate-800 shadow-2xl overflow-hidden -mt-12 md:-mt-16 relative z-20 bg-white">
+        <div 
+          className="w-24 h-24 md:w-32 md:h-32 rounded-full border-4 border-white dark:border-slate-800 shadow-2xl overflow-hidden -mt-12 md:-mt-16 relative z-20 bg-white cursor-pointer hover:scale-105 transition-transform duration-300"
+        >
           <img src={siteConfig.avatarUrl} alt="avatar" className="w-full h-full object-cover" />
         </div>
 

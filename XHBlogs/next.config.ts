@@ -1,12 +1,12 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // 🚨 核心修改 1：关掉纯静态导出，让 Vercel 帮你把 API 跑起来！
-  // output: 'export',
-
-  // 🚨 核心修改 2：Vercel 不需要强制加斜杠，关掉它能避免很多 API 路径匹配错误
-  // trailingSlash: true,
-
+  // 🚨 核心修改 1：开启纯静态导出，用于 GitHub Pages 部署
+  output: 'export',
+  // 🚨 核心修改 2：静态部署需要强制加斜杠，避免路径匹配错误
+  trailingSlash: true,
+  // 🚨 核心修改 3：GitHub Pages 部署在子路径 /blog 下，需要配置 basePath
+  basePath: '/blog',
   // 下面这些可以保留
   images: {
     unoptimized: true,

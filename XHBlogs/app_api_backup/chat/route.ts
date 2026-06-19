@@ -2,6 +2,7 @@
 import { siteConfig } from '../../../siteConfig'; // 确保这里的路径指向你的 siteConfig
 
 export const runtime = 'edge';
+export const dynamic = "force-static";
 
 export async function POST(req: Request) {
   console.log("🚀 [1/5] 路由进入：开始对接 Gemini 3 脑回路");
