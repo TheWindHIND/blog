@@ -55,6 +55,23 @@ if exist "my-blog-manager\posts" (
     xcopy /e /y /q "my-blog-manager\posts\*" "XHBlogs\posts\" >nul 2>nul
 )
 
+:: 检查文章目录是否为空，如果为空则创建一个占位文件
+if not exist "XHBlogs\posts\*.md" (
+    echo --- > "XHBlogs\posts\welcome.md"
+    echo title: 欢迎来到藏枫的博客 >> "XHBlogs\posts\welcome.md"
+    echo date: "2026-06-20" >> "XHBlogs\posts\welcome.md"
+    echo tags: >> "XHBlogs\posts\welcome.md"
+    echo   - 欢迎 >> "XHBlogs\posts\welcome.md"
+    echo   - 博客 >> "XHBlogs\posts\welcome.md"
+    echo cover:  >> "XHBlogs\posts\welcome.md"
+    echo description: 欢迎来到藏枫の猫窝 >> "XHBlogs\posts\welcome.md"
+    echo --- >> "XHBlogs\posts\welcome.md"
+    echo. >> "XHBlogs\posts\welcome.md"
+    echo # 欢迎来到藏枫的博客 >> "XHBlogs\posts\welcome.md"
+    echo. >> "XHBlogs\posts\welcome.md"
+    echo 你好，我是藏在风里的猫，欢迎来到我的小博客！ >> "XHBlogs\posts\welcome.md"
+)
+
 :: 同步说说（先清空再复制）
 echo   同步说说...
 if exist "XHBlogs\moments" (
