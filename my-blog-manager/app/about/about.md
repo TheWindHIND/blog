@@ -1,27 +1,18 @@
 ---
 title: 关于我
-date: '2026-03-31'
+date: '2026-03-31 02:35:11'
 tags: []
 mood: ''
-cover: https://bu.dusays.com/2026/03/24/69c23dc278c78.jpg
+cover: https://backup.fukit.cn/autoupload/f/e6dvVv6sI6US7bqgWvSMp9iO_OyvX7mIgxFBfDMDErs/20260620/0gdC/3840X2160/1775277237612.jpeg
 description: ''
 ---
 
 个人简介
 
-你好，我是 XingHuiSama。
+你好，我是 藏在风里的猫。
 
-专注于**计算化学、人工智能与软件工程**的交叉应用。
+这是我的个人博客，目前还不知道用来做什么
 
-**🔬 研究与计算方向**
+博客的模板来自 ：
 
-* **图神经网络:** 用于分子性质预测与特征提取。
-* **分子对接:** 用于评估配体与受体蛋白的结合模式与亲和力。
-* **分子动力学模拟 :** 用于探究生物大分子在原子尺度的动态行为与构象变化。
-
-**💻 软件工程能力**
-
-* **后端开发:** 使用 **Spring Boot** 框架构建服务端架构，能够处理复杂的数据逻辑与计算任务调度。
-* **前端开发:** 熟练掌握 **Vue.js** 与 **React** 框架，为复杂科学数据的可视化与交互提供流畅的体验。
-
-**欢迎各位朋友联系交流~**
+GitHub 开源地址：<https://github.com/heiehiehi/XinghuisamaBlogs>
