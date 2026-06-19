@@ -9,9 +9,15 @@ import {
 } from 'lucide-react';
 import Navbar from '../../components/Navbar';
 import PageTransition from '../../components/PageTransition';
+import { siteConfig } from '../../siteConfig';
 
 export default function AdminPage() {
   const [activeSection, setActiveSection] = useState('dashboard');
+
+  // 计算建站天数
+  const buildDate = new Date(siteConfig.buildDate || '2026-06-20');
+  const today = new Date();
+  const daysDiff = Math.floor((today - buildDate) / (1000 * 60 * 60 * 24)) + 1; // +1 因为当天算第1天
 
   const menuItems = [
     { id: 'dashboard', name: '控制台', icon: Settings },
@@ -141,7 +147,7 @@ export default function AdminPage() {
                           <span className="font-bold text-slate-700 dark:text-slate-200">建站天数</span>
                         </div>
                         <div className="text-3xl font-black text-blue-600 dark:text-blue-400">
-                          1 天
+                          {daysDiff} 天
                         </div>
                       </div>
 

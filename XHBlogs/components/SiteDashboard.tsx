@@ -21,7 +21,8 @@ export default function SiteDashboard() {
       const diff = now.getTime() - START_DATE;
       const days = Math.floor(diff / (1000 * 60 * 60 * 24));
       const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
-      setUptimeStr(`${days}天 ${hours}小时`);
+      const minutes = Math.floor((diff / (1000 * 60)) % 60);
+      setUptimeStr(`${days}天 ${hours}小时 ${minutes}分`);
     };
 
     updateTime(); // 初始执行一次
