@@ -23,21 +23,25 @@ export default function CyberCat() {
     inputPlaceholder: "说点啥...",
   };
 
-  // 处理图片路径（支持 basePath - 从 __NEXT_DATA__ 读取）
+  // 处理图片路径（支持 basePath）
   const getImageSrc = () => {
-    if (typeof window !== 'undefined') {
-      // @ts-ignore
-      const basePath = window.__NEXT_DATA__?.runtimeConfig?.basePath || '';
-      const img = petConfig.petImage || "/silver-wolf.png";
-      if (img.startsWith('http')) {
-        return img;
-      }
-      if (img.startsWith('/')) {
-        return basePath + img;
-      }
-      return basePath + '/' + img;
+    const img = petConfig.petImage || "/silver-wolf.png";
+    if (img.startsWith('http')) {
+      return img;
     }
-    return petConfig.petImage || "/silver-wolf.png";
+    // 从页面路径中提取 basePath（兼容 GitHub Pages 子路径部署）
+    let basePath = '';
+    if (typeof window !== 'undefined') {
+      const pathname = window.location.pathname;
+      // 尝试从路径中提取 basePath（假设部署在 /blog/ 下）
+      if (pathname.startsWith('/blog')) {
+        basePath = '/blog';
+      }
+    }
+    if (img.startsWith('/')) {
+      return basePath + img;
+    }
+    return basePath + '/' + img;
   };
 
   // --- 💬 说话功能 ---
