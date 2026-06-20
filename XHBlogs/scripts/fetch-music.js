@@ -7,6 +7,8 @@ const path = require('path');
 const NET_EASE_HEADERS = {
   'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
   'Referer': 'https://music.163.com/',
+  'Accept': 'application/json, text/plain, */*',
+  'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
 };
 
 // 手机端 User-Agent（用于获取真实播放地址，绕过防盗链）
@@ -42,8 +44,6 @@ async function fetchRealPlayUrl(songId) {
   try {
     const outerUrl = `https://music.163.com/song/media/outer/url?id=${songId}.mp3`;
     
-    // 使用 fetch 并设置 redirect: 'manual' 来获取重定向地址
-    // 或者直接跟随重定向，获取最终的 URL
     const response = await fetch(outerUrl, {
       headers: MOBILE_HEADERS,
       redirect: 'follow',
@@ -70,37 +70,61 @@ async function fetchRealPlayUrl(songId) {
   }
 }
 
-// 获取歌曲详情
+// 获取歌曲详情（尝试多个接口，容错性更强）
 async function fetchSongDetail(songId) {
+  // 先获取播放地址（这个比较重要，即使详情获取失败也能播放）
+  console.log(`  🎵 获取播放地址...`);
+  const realUrl = await fetchRealPlayUrl(songId);
+  
+  if (!realUrl) {
+    return { id: songId, error: 'play_url_not_found' };
+  }
+  
+  // 尝试获取歌曲详情
   try {
+    // 使用详情接口
     const url = `https://music.163.com/api/song/detail/?id=${songId}&ids=[${songId}]`;
     const response = await fetch(url, { headers: NET_EASE_HEADERS });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+    
     const data = await response.json();
     
     const song = data.songs?.[0];
-    if (!song) {
-      return { id: songId, error: 'not_found' };
+    if (song) {
+      const artistName = song.artists?.[0]?.name || '未知歌手';
+      
+      return {
+        id: songId,
+        name: song.name,
+        artist: artistName,
+        author: artistName,
+        cover: song.album?.picUrl || '',
+        pic: song.album?.picUrl || '',
+        url: realUrl,
+      };
     }
     
-    const artistName = song.artists?.[0]?.name || '未知歌手';
+    // 如果接口返回了数据但没有 songs，打印一下返回内容方便调试
+    console.log(`  ⚠️  详情接口返回异常，数据格式:`, JSON.stringify(data).substring(0, 100));
     
-    // 获取真实播放地址
-    console.log(`  🎵 获取播放地址: ${song.name}`);
-    const realUrl = await fetchRealPlayUrl(songId);
-    
-    return {
-      id: songId,
-      name: song.name,
-      artist: artistName,
-      author: artistName,
-      cover: song.album?.picUrl || '',
-      pic: song.album?.picUrl || '',
-      url: realUrl || `https://music.163.com/song/media/outer/url?id=${songId}.mp3`,
-    };
   } catch (error) {
-    console.error(`  ❌ 获取歌曲 ${songId} 详情失败:`, error.message);
-    return { id: songId, error: String(error) };
+    console.log(`  ⚠️  详情接口获取失败: ${error.message}，使用默认信息`);
   }
+  
+  // 如果详情获取失败，返回基本信息（至少能播放）
+  console.log(`  ℹ️  使用默认歌曲信息`);
+  return {
+    id: songId,
+    name: `歌曲 ${songId}`,
+    artist: '未知歌手',
+    author: '未知歌手',
+    cover: '',
+    pic: '',
+    url: realUrl,
+  };
 }
 
 // 获取歌词
@@ -111,7 +135,7 @@ async function fetchSongLyric(songId) {
     const data = await response.json();
     return data.lrc?.lyric || '';
   } catch (error) {
-    console.error(`  ❌ 获取歌曲 ${songId} 歌词失败:`, error.message);
+    console.log(`  ⚠️  获取歌词失败:`, error.message);
     return '';
   }
 }
@@ -125,7 +149,6 @@ async function main() {
   console.log(`📋 找到 ${songIds.length} 首歌曲\n`);
   
   if (songIds.length === 0) {
-    // 写入空数组
     const outputPath = path.join(__dirname, '..', 'public', 'music-data.json');
     fs.writeFileSync(outputPath, '[]', 'utf-8');
     console.log('\n✅ 音乐数据获取完成（空）\n');
@@ -139,7 +162,7 @@ async function main() {
     const songId = songIds[i];
     console.log(`[${i + 1}/${songIds.length}] 处理歌曲 ID: ${songId}`);
     
-    // 获取详情
+    // 获取详情（包含播放地址）
     const detail = await fetchSongDetail(songId);
     
     if (detail.error) {
@@ -158,15 +181,20 @@ async function main() {
     console.log(`  ✅ ${detail.name} - ${detail.artist}`);
     
     // 加个延迟，避免请求太快
-    await new Promise(resolve => setTimeout(resolve, 500));
+    await new Promise(resolve => setTimeout(resolve, 300));
   }
   
   // 3. 保存到文件
   const outputPath = path.join(__dirname, '..', 'public', 'music-data.json');
   fs.writeFileSync(outputPath, JSON.stringify(songs, null, 2), 'utf-8');
   
-  console.log(`\n✅ 音乐数据获取完成，共 ${songs.length} 首歌`);
+  console.log(`\n✅ 音乐数据获取完成，共 ${songs.length} / ${songIds.length} 首歌`);
   console.log(`📁 保存到: ${outputPath}\n`);
+  
+  if (songs.length < songIds.length) {
+    console.log(`⚠️  有 ${songIds.length - songs.length} 首歌获取失败，可能是网络问题或歌曲无版权`);
+    console.log(`💡  可以稍后重新构建，或者换其他歌曲ID试试\n`);
+  }
 }
 
 // 运行
