@@ -19,7 +19,6 @@ import DanmakuSection from '../../components/settings/DanmakuSection';
 import FooterSection from '../../components/settings/FooterSection';
 // 👇 🌟 引入刚写的 AI 配置组件
 import AICatSection from '../../components/settings/AICatSection';
-import DesktopPetSection from '../../components/settings/DesktopPetSection';
 
 function SettingsContent() {
   const { operations, addOperation } = useOperations();
@@ -270,8 +269,7 @@ function SettingsContent() {
     { id: 'footer', name: '首页底部设置', icon: '🧩' },
     { id: 'danmaku', name: '全站弹幕设置', icon: '⚡' },
     { id: 'comment', name: '评论系统配置', icon: '💬' },
-    { id: 'aicat', name: 'AI 煤球配置', icon: '🐾' }, // 👈 新增的小猫设置
-    { id: 'pet', name: '桌宠语录设置', icon: '🐺' }, // 👈 新增的桌宠设置
+    { id: 'aicat', name: 'AI 煤球配置', icon: '🐾' },
     { id: 'repo', name: '项目仓库设置', icon: '🚀' },
   ];
 
@@ -313,8 +311,6 @@ function SettingsContent() {
               {activeTab === 'comment' && <CommentSection key="comment" formData={formData} handleUpdate={handleUpdate} pushToQueue={pushToQueue} />}
               {/* 👇 🌟 挂载 AI 猫咪面板 */}
               {activeTab === 'aicat' && <AICatSection key="aicat" formData={formData} handleUpdate={handleUpdate} pushToQueue={pushToQueue} />}
-              {/* 👇 🌟 挂载桌宠语录面板 */}
-              {activeTab === 'pet' && <DesktopPetSection key="pet" formData={formData} handleUpdate={handleUpdate} pushToQueue={pushToQueue} />}
 
               {activeTab === 'repo' && <RepoSection key="repo" />}
             </AnimatePresence>

@@ -80,9 +80,9 @@ async function fetchSongDetail(songId) {
     return { id: songId, error: 'play_url_not_found' };
   }
   
-  // 尝试获取歌曲详情
+  // 尝试1：使用官方详情接口
   try {
-    // 使用详情接口
+    console.log(`  📡 尝试接口1: 官方详情接口...`);
     const url = `https://music.163.com/api/song/detail/?id=${songId}&ids=[${songId}]`;
     const response = await fetch(url, { headers: NET_EASE_HEADERS });
     
@@ -107,15 +107,77 @@ async function fetchSongDetail(songId) {
       };
     }
     
-    // 如果接口返回了数据但没有 songs，打印一下返回内容方便调试
-    console.log(`  ⚠️  详情接口返回异常，数据格式:`, JSON.stringify(data).substring(0, 100));
-    
+    console.log(`  ⚠️  接口1返回数据异常`);
   } catch (error) {
-    console.log(`  ⚠️  详情接口获取失败: ${error.message}，使用默认信息`);
+    console.log(`  ⚠️  接口1失败: ${error.message}`);
   }
   
-  // 如果详情获取失败，返回基本信息（至少能播放）
-  console.log(`  ℹ️  使用默认歌曲信息`);
+  // 尝试2：使用 meting API 作为备用
+  try {
+    console.log(`  📡 尝试接口2: Meting API...`);
+    const url = `https://api.injahow.cn/meting/?server=netease&type=song&id=${songId}`;
+    const response = await fetch(url, { headers: NET_EASE_HEADERS });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+    
+    const data = await response.json();
+    
+    if (Array.isArray(data) && data.length > 0) {
+      const song = data[0];
+      if (song.name) {
+        return {
+          id: songId,
+          name: song.name,
+          artist: song.artist || '未知歌手',
+          author: song.artist || '未知歌手',
+          cover: song.cover || '',
+          pic: song.cover || '',
+          url: realUrl, // 还是用我们自己获取的真实播放地址，更可靠
+        };
+      }
+    }
+    
+    console.log(`  ⚠️  接口2返回数据异常`);
+  } catch (error) {
+    console.log(`  ⚠️  接口2失败: ${error.message}`);
+  }
+  
+  // 尝试3：使用手机端UA的详情接口
+  try {
+    console.log(`  📡 尝试接口3: 手机端详情接口...`);
+    const url = `https://music.163.com/api/song/detail/?id=${songId}&ids=[${songId}]`;
+    const response = await fetch(url, { headers: MOBILE_HEADERS });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+    
+    const data = await response.json();
+    
+    const song = data.songs?.[0];
+    if (song) {
+      const artistName = song.artists?.[0]?.name || '未知歌手';
+      
+      return {
+        id: songId,
+        name: song.name,
+        artist: artistName,
+        author: artistName,
+        cover: song.album?.picUrl || '',
+        pic: song.album?.picUrl || '',
+        url: realUrl,
+      };
+    }
+    
+    console.log(`  ⚠️  接口3返回数据异常`);
+  } catch (error) {
+    console.log(`  ⚠️  接口3失败: ${error.message}`);
+  }
+  
+  // 如果所有接口都失败，返回基本信息（至少能播放）
+  console.log(`  ℹ️  所有详情接口都失败，使用默认歌曲信息`);
   return {
     id: songId,
     name: `歌曲 ${songId}`,

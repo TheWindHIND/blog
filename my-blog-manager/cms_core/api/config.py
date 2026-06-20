@@ -122,7 +122,7 @@ def update_site_config(payload: Dict[str, Any] = Body(...)):
         "bgImages", "defaultPostCover", "photoWallImage", "cloudMusicIds", "social",
         "counts", "chatterTitle", "chatterDescription", "picBedName", "picBedUrl",
         "picBedToken", "danmakuList", "gitalkConfig", "buildDate", "footerBadges",
-        "icpConfig", "geminiConfig",
+        "icpConfig", "geminiConfig", "localMusic", "desktopPetConfig",
         "faviconUrl",
         "navTitle",
         "navSuffix",
