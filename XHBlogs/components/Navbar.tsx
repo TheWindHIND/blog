@@ -5,8 +5,12 @@ import { useState, useEffect, useRef } from 'react';
 import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence, useMotionValue, useSpring, useTransform, PanInfo } from 'framer-motion';
 import { siteConfig } from '../siteConfig';
+import HumanVerification from './HumanVerification';
 
 export default function Navbar() {
+  // 彩蛋：人类验证弹窗
+  const [easterEggClicks, setEasterEggClicks] = useState(0);
+  const [showVerification, setShowVerification] = useState(false);
   const [showNav, setShowNav] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -105,6 +109,19 @@ export default function Navbar() {
                 </Link>
               );
             })}
+            {/* 彩蛋：淡蓝色小点，点击3次触发人类验证 */}
+            <button
+              onClick={() => {
+                const newCount = easterEggClicks + 1;
+                setEasterEggClicks(newCount);
+                if (newCount >= 3) {
+                  setShowVerification(true);
+                  setEasterEggClicks(0);
+                }
+              }}
+              className="ml-1 w-2 h-2 rounded-full bg-sky-400/60 hover:bg-sky-400 transition-all duration-300 hover:scale-150 cursor-pointer self-center"
+              title="✨"
+            />
           </nav>
         </div>
       </header>
@@ -198,6 +215,13 @@ export default function Navbar() {
           )}
         </AnimatePresence>
       </div>
+
+      {/* 彩蛋：人类验证弹窗 */}
+      <HumanVerification
+        isOpen={showVerification}
+        onClose={() => setShowVerification(false)}
+        onSuccess={() => setShowVerification(false)}
+      />
     </>
   );
 }

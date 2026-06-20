@@ -8,8 +8,12 @@ import { useOperations } from '../context/OperationContext';
 import { useToast } from './ToastProvider';
 import { AlertTriangle } from 'lucide-react';
 import { siteConfig } from '../siteConfig';
+import HumanVerification from './HumanVerification';
 
 export default function Navbar() {
+  // 彩蛋：人类验证弹窗
+  const [easterEggClicks, setEasterEggClicks] = useState(0);
+  const [showVerification, setShowVerification] = useState(false);
   const [showNav, setShowNav] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
   const [isOpBoxOpen, setIsOpBoxOpen] = useState(false);
@@ -206,11 +210,28 @@ export default function Navbar() {
           </Link>
 
           <div className="flex items-center gap-6" style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
-            <nav className="hidden lg:flex gap-8 text-sm font-bold">
+            <nav className="hidden lg:flex gap-8 text-sm font-bold items-center">
               {navLinks.map((link) => (
-                <Link key={link.href} href={link.href} className={`relative py-1 transition-colors ${pathname === link.href ? 'text-indigo-600' : 'text-slate-700 dark:text-slate-200'}`}>
-                  {link.name}
-                </Link>
+                <div key={link.href} className="flex items-center">
+                  <Link href={link.href} className={`relative py-1 transition-colors ${pathname === link.href ? 'text-indigo-600' : 'text-slate-700 dark:text-slate-200'}`}>
+                    {link.name}
+                  </Link>
+                  {/* 彩蛋：淡蓝色小点，在关于后面 */}
+                  {link.name === '关于' && (
+                    <button
+                      onClick={() => {
+                        const newCount = easterEggClicks + 1;
+                        setEasterEggClicks(newCount);
+                        if (newCount >= 3) {
+                          setShowVerification(true);
+                          setEasterEggClicks(0);
+                        }
+                      }}
+                      className="ml-1 w-2 h-2 rounded-full bg-sky-400/60 hover:bg-sky-400 transition-all duration-300 hover:scale-150 cursor-pointer"
+                      title="✨"
+                    />
+                  )}
+                </div>
               ))}
             </nav>
 
@@ -302,6 +323,13 @@ export default function Navbar() {
           </div>
         )}
       </AnimatePresence>
+
+      {/* 彩蛋：人类验证弹窗 */}
+      <HumanVerification
+        isOpen={showVerification}
+        onClose={() => setShowVerification(false)}
+        onSuccess={() => setShowVerification(false)}
+      />
     </>
   );
 }
