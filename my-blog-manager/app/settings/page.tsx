@@ -20,7 +20,6 @@ import FooterSection from '../../components/settings/FooterSection';
 // 👇 🌟 引入刚写的 AI 配置组件
 import AICatSection from '../../components/settings/AICatSection';
 import DesktopPetSection from '../../components/settings/DesktopPetSection';
-import DesktopPetSection from '../../components/settings/DesktopPetSection';
 
 function SettingsContent() {
   const { operations, addOperation } = useOperations();

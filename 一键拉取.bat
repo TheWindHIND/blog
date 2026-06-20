@@ -18,7 +18,7 @@ echo [OK] Git 已安装
 echo.
 echo [2/3] 正在拉取最新代码...
 echo.
-git pull origin main
+git pull origin main --no-edit --no-rebase
 if %errorlevel% equ 0 (
     echo.
     echo ========================================
