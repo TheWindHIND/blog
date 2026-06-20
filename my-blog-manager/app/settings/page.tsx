@@ -32,6 +32,14 @@ function SettingsContent() {
     avatarUrl: siteConfig.avatarUrl || "",
     social: siteConfig.social || {},
     cloudMusicIds: [...(siteConfig.cloudMusicIds || [])],
+    localMusic: [...(siteConfig.localMusic || [])],
+    newLocalMusic: {
+      name: '',
+      artist: '',
+      url: '',
+      cover: '',
+      neteaseId: ''
+    },
     bgImages: [...(siteConfig.bgImages || [])],
     gitalkConfig: siteConfig.gitalkConfig || {
       clientID: '',
@@ -183,6 +191,61 @@ function SettingsContent() {
     }
   };
 
+  // 本地音乐相关函数
+  const addLocalMusic = () => {
+    const newSong = formData.newLocalMusic;
+    if (!newSong.url) {
+      showToast("请填写音频文件名", "warning");
+      return;
+    }
+    if (!newSong.name) {
+      showToast("请填写歌曲名", "warning");
+      return;
+    }
+
+    const songToAdd = {
+      id: `local_${Date.now()}`,
+      name: newSong.name,
+      artist: newSong.artist || '未知歌手',
+      url: `/music/${newSong.url}`,
+      cover: newSong.cover ? `/music/${newSong.cover}` : '',
+      lrc: '',
+      neteaseId: newSong.neteaseId || ''
+    };
+
+    handleUpdate('localMusic', [...formData.localMusic, songToAdd]);
+    handleUpdate('newLocalMusic', { name: '', artist: '', url: '', cover: '', neteaseId: '' });
+    showToast("✅ 成功添加本地音乐！", "success");
+  };
+
+  const removeLocalMusic = (index: number) => {
+    const newList = [...formData.localMusic];
+    newList.splice(index, 1);
+    handleUpdate('localMusic', newList);
+    showToast("已移除一首本地音乐", "success");
+  };
+
+  const fetchLocalMusicInfo = async () => {
+    const neteaseId = formData.newLocalMusic.neteaseId;
+    if (!neteaseId) {
+      showToast("请先填写网易云歌曲ID", "warning");
+      return;
+    }
+
+    const info = await fetchMusicDetail(neteaseId);
+    if (info && !info.error) {
+      handleUpdate('newLocalMusic', {
+        ...formData.newLocalMusic,
+        name: info.name,
+        artist: info.artist || info.author || '',
+        cover: info.cover || info.pic || ''
+      });
+      showToast("✅ 已自动填充歌曲信息！", "success");
+    } else {
+      showToast("获取歌曲信息失败，请手动填写", "error");
+    }
+  };
+
   const pushToQueue = (label: string, key?: string, value?: any) => {
     addOperation({
       id: Date.now().toString(),
@@ -243,7 +306,7 @@ function SettingsContent() {
               {activeTab === 'profile' && <ProfileSection key="profile" formData={formData} handleUpdate={handleUpdate} pushToQueue={pushToQueue} />}
               {activeTab === 'display' && <DisplaySection key="display" />}
               {activeTab === 'background' && <BackgroundSection key="background" formData={formData} handleUpdate={handleUpdate} pushToQueue={pushToQueue} />}
-              {activeTab === 'music' && <MusicSection key="music" formData={formData} handleUpdate={handleUpdate} pushToQueue={pushToQueue} musicDetails={musicDetails} queryMusic={queryMusic} queryLoading={queryLoading} queryResult={queryResult} confirmAddMusic={confirmAddMusic} removeSong={removeSong} />}
+              {activeTab === 'music' && <MusicSection key="music" formData={formData} handleUpdate={handleUpdate} pushToQueue={pushToQueue} musicDetails={musicDetails} queryMusic={queryMusic} queryLoading={queryLoading} queryResult={queryResult} confirmAddMusic={confirmAddMusic} removeSong={removeSong} addLocalMusic={addLocalMusic} removeLocalMusic={removeLocalMusic} fetchLocalMusicInfo={fetchLocalMusicInfo} />}
               {activeTab === 'gallery' && <GallerySection key="gallery" formData={formData} handleUpdate={handleUpdate} pushToQueue={pushToQueue} />}
               {activeTab === 'footer' && <FooterSection key="footer" formData={formData} handleUpdate={handleUpdate} pushToQueue={pushToQueue} />}
               {activeTab === 'danmaku' && <DanmakuSection key="danmaku" formData={formData} handleUpdate={handleUpdate} pushToQueue={pushToQueue} />}

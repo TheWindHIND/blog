@@ -1,23 +1,18 @@
 "use client";
-
 import { createContext, useContext, useState, useRef, useEffect, ReactNode } from 'react';
 import { siteConfig } from '../siteConfig';
 
 // 【增强版 LRC 歌词解析】
 function parseLrc(lrcText: string) {
   if (!lrcText || lrcText.length > 30000) return [];
-
   const lines = lrcText.split(/\r?\n/);
   const result = [];
-
   for (let line of lines) {
     const matches = [...line.matchAll(/\[(\d{2,}):(\d{2})(?:\.(\d{2,3}))?\]/g)];
     if (matches.length > 0) {
       let text = line.replace(/\[\d{2,}:\d{2}(?:\.\d{2,3})?\]/g, '').trim();
-
       // 剔除控制字符
       const cleanText = text.replace(/[\u0000-\u001F\u007F-\u009F\u200B-\u200D\uFEFF]/g, "");
-
       if (cleanText) {
         for (const match of matches) {
           const min = parseInt(match[1]);
@@ -49,7 +44,6 @@ interface MusicContextType {
   volume: number;
   isMuted: boolean;
   playMode: PlayMode;
-
   togglePlay: () => void;
   nextSong: () => void;
   prevSong: () => void;
@@ -82,27 +76,51 @@ export function MusicProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let isMounted = true;
+
     const fetchMusicData = async () => {
       try {
         // 处理 basePath，适配 GitHub Pages 子路径部署
         const path = window.location.pathname;
         const pathParts = path.split('/').filter(Boolean);
         const basePath = pathParts.length > 0 && pathParts[0] === 'blog' ? '/blog' : '';
-        
-        const res = await fetch(`${basePath}/music-data.json`);
-        const rawResults = await res.json();
 
-        const mergedPlaylist = rawResults
-          .filter((song: any) => song && song.url && !song.error)
+        // 1. 加载网易云音乐数据
+        let neteaseSongs: any[] = [];
+        try {
+          const res = await fetch(`${basePath}/music-data.json`);
+          const rawResults = await res.json();
+          neteaseSongs = rawResults
+            .filter((song: any) => song && song.url && !song.error)
+            .map((song: any) => ({
+              id: song.id || Math.random().toString(),
+              title: song.name || '未知歌曲',
+              artist: song.artist || song.author || '未知歌手',
+              cover: song.cover || song.pic || 'https://bu.dusays.com/2026/03/24/69c24230a5ff8.jpg',
+              src: song.url,
+              lrcUrl: null,
+              lyrics: song.lrc ? parseLrc(song.lrc) : [],
+              type: 'netease'
+            }));
+        } catch (e) {
+          console.warn('网易云音乐加载失败', e);
+        }
+
+        // 2. 加载本地音乐
+        const localSongs = (siteConfig.localMusic || [])
+          .filter((song: any) => song && song.url)
           .map((song: any) => ({
-            id: song.id || Math.random().toString(),
-            title: song.name || '未知歌曲',
+            id: song.id || `local_${Date.now()}_${Math.random()}`,
+            title: song.name || song.title || '未知歌曲',
             artist: song.artist || song.author || '未知歌手',
             cover: song.cover || song.pic || 'https://bu.dusays.com/2026/03/24/69c24230a5ff8.jpg',
-            src: song.url,
+            src: `${basePath}${song.url}`, // 处理 basePath
             lrcUrl: null,
-            lyrics: song.lrc ? parseLrc(song.lrc) : []
+            lyrics: song.lrc ? parseLrc(song.lrc) : [],
+            type: 'local'
           }));
+
+        // 3. 合并歌单（网易云在前，本地在后）
+        const mergedPlaylist = [...neteaseSongs, ...localSongs];
 
         if (isMounted) {
           if (mergedPlaylist.length > 0) setPlaylist(mergedPlaylist);
@@ -114,7 +132,9 @@ export function MusicProvider({ children }: { children: ReactNode }) {
       }
     };
 
-    if (siteConfig.cloudMusicIds?.length > 0) fetchMusicData();
+    if ((siteConfig.cloudMusicIds?.length > 0) || (siteConfig.localMusic?.length > 0)) {
+      fetchMusicData();
+    }
     else setIsLoading(false);
 
     return () => { isMounted = false; };
@@ -123,13 +143,15 @@ export function MusicProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (playlist.length === 0) return;
     let isMounted = true;
+
     const currentSong = playlist[currentIndex];
     setLyrics([]);
     setCurrentLyric("♪ 正在缓冲 ♪");
+
     if (currentSong.lyrics && currentSong.lyrics.length > 0) {
       if (isMounted) {
         setLyrics(currentSong.lyrics);
-        setCurrentLyric(currentSong.lyrics[0]?.text || "\u266a \u7eaf\u4eab\u97f3\u4e50 \u266a");
+        setCurrentLyric(currentSong.lyrics[0]?.text || "♪ 纯享音乐 ♪");
       }
     } else if (currentSong.lrcUrl) {
       fetch(currentSong.lrcUrl)
@@ -145,7 +167,7 @@ export function MusicProvider({ children }: { children: ReactNode }) {
              });
           }
         })
-        .catch(() => { if (isMounted) setCurrentLyric("\u266a \u7eaf\u4eab\u97f3\u4e50 \u266a"); });
+        .catch(() => { if (isMounted) setCurrentLyric("♪ 纯享音乐 ♪"); });
     }
 
     if (isPlaying && audioRef.current) {
@@ -154,6 +176,7 @@ export function MusicProvider({ children }: { children: ReactNode }) {
         playPromise.catch(() => setIsPlaying(false));
       }
     }
+
     return () => { isMounted = false; };
   }, [currentIndex, playlist.length]); // 移除 playlist 依赖防止无限循环，只依赖长度
 
