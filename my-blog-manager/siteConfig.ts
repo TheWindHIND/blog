@@ -70,6 +70,39 @@ export const siteConfig = {
     maxOutputTokens: 150,
     temperature: 0.85,
   },
+  // 👇 【新增】：桌宠配置
+  desktopPetConfig: {
+    petName: "银狼",
+    petImage: "/silver-wolf.png",
+    // 随机挂机语录
+    randomQuotes: [
+      "又在摸鱼？小心我黑掉你的屏幕~",
+      "无聊... 有没有什么有趣的网站可以黑一下？",
+      "哼，这种程度的代码也敢拿出来？",
+      "喂，别盯着我看，小心我把你摄像头打开~",
+      "嗯？你说什么？我在打游戏呢...",
+      "任务完成，收工~",
+      "哼，本小姐可是天才黑客银狼！",
+      "无聊到想睡觉了...",
+      "今天又黑掉了几个网站呢~",
+      "啧，又有漏洞？真是的...",
+    ],
+    // 点击回复
+    clickReplies: [
+      "唔... 别随便碰我，小心我黑你电脑~",
+      "哼，手往哪放呢？",
+      "真是的... 好吧，只许摸一下哦",
+      "喂，别以为这样我就会放过你",
+    ],
+    // 投喂回复
+    feedReply: "哦？能量饮料？... 好吧，勉强收下了",
+    // 思考回复
+    thinkingReply: "让我想想...",
+    // 错误回复
+    errorReply: "网络好像出问题了... 哼，肯定是运营商的锅",
+    // 输入框占位符
+    inputPlaceholder: "跟银狼说点啥...",
+  },
   friendLinkApplyFormat: "名称：藏枫の猫窝\n简介：我是简介\n链接：https://thewindhind.github.io/blog/\n头像：https://bu.dusays.com/2026/03/24/69c1e38ac1846.jpg",
   enableLevelSystem: true,
 };
