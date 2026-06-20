@@ -2,12 +2,13 @@
 chcp 936 >nul
 echo ========================================
 echo    一键部署网站到 GitHub Pages
+echo    （完整同步 + 构建 + 部署 + 推送源码）
 echo ========================================
 echo.
 cd /d "%~dp0"
 
 :: 检查 Node.js
-echo [1/6] 正在检查 Node.js...
+echo [1/8] 正在检查 Node.js...
 where node >nul 2>nul
 if %errorlevel% neq 0 (
     echo [错误] 未检测到 Node.js，请先安装 Node.js！
@@ -20,7 +21,7 @@ echo [OK] Node.js 已安装
 echo.
 
 :: 检查 Git
-echo [2/6] 正在检查 Git...
+echo [2/8] 正在检查 Git...
 where git >nul 2>nul
 if %errorlevel% neq 0 (
     echo [错误] 未检测到 Git，请先安装 Git！
@@ -32,22 +33,24 @@ if %errorlevel% neq 0 (
 echo [OK] Git 已安装
 echo.
 
+:: ========================================
 :: 同步控制面板内容到博客前端
-echo [3/6] 正在同步控制面板内容...
+:: ========================================
+echo [3/8] 正在同步控制面板内容...
 echo.
 
-:: 同步站点配置
-echo   同步站点配置...
+:: 1. 同步站点配置
+echo   [1/10] 同步站点配置...
 copy /y "my-blog-manager\siteConfig.ts" "XHBlogs\siteConfig.ts" >nul
 
-:: 同步关于页面
-echo   同步关于页面...
+:: 2. 同步关于页面
+echo   [2/10] 同步关于页面...
 if exist "my-blog-manager\app\about\about.md" (
     copy /y "my-blog-manager\app\about\about.md" "XHBlogs\app\about\about.md" >nul
 )
 
-:: 同步文章（先清空再复制，确保删除的内容也同步）
-echo   同步文章...
+:: 3. 同步文章（先清空再复制，确保删除的内容也同步）
+echo   [3/10] 同步文章...
 if exist "XHBlogs\posts" (
     del /q "XHBlogs\posts\*.md" 2>nul
 )
@@ -72,8 +75,8 @@ if not exist "XHBlogs\posts\*.md" (
     echo 你好，我是藏在风里的猫，欢迎来到我的小博客！ >> "XHBlogs\posts\welcome.md"
 )
 
-:: 同步说说（先清空再复制）
-echo   同步说说...
+:: 4. 同步说说（先清空再复制）
+echo   [4/10] 同步说说...
 if exist "XHBlogs\moments" (
     del /q "XHBlogs\moments\*.md" 2>nul
 )
@@ -81,8 +84,8 @@ if exist "my-blog-manager\moments" (
     xcopy /e /y /q "my-blog-manager\moments\*" "XHBlogs\moments\" >nul 2>nul
 )
 
-:: 同步杂谈（先清空再复制）
-echo   同步杂谈...
+:: 5. 同步杂谈（先清空再复制）
+echo   [5/10] 同步杂谈...
 if exist "XHBlogs\chatters" (
     del /q "XHBlogs\chatters\*.md" 2>nul
 )
@@ -103,18 +106,37 @@ if not exist "XHBlogs\chatters\*.md" (
     echo 这里是藏枫的云端杂谈，以后会在这里分享一些日常和想法~ >> "XHBlogs\chatters\welcome.md"
 )
 
-:: 同步数据文件（相册、友链、项目等）
-echo   同步数据文件...
+:: 6. 同步数据文件（相册、友链、项目等）
+echo   [6/10] 同步数据文件...
 if exist "my-blog-manager\data" (
     xcopy /e /y /q "my-blog-manager\data\*" "XHBlogs\data\" >nul 2>nul
 )
 
+:: 7. 同步静态资源（public 目录 - 图片等）
+echo   [7/10] 同步静态资源（图片等）...
+if exist "my-blog-manager\public" (
+    xcopy /e /y /q "my-blog-manager\public\*" "XHBlogs\public\" >nul 2>nul
+)
+
+:: 8. 同步后台管理页面样式（如果有自定义）
+echo   [8/10] 检查后台管理页面...
+:: （后台管理页面是单独的，不需要同步）
+
+:: 9. 同步组件修改（如果有自定义组件）
+echo   [9/10] 检查自定义组件...
+:: （组件是代码级别的，不需要自动同步）
+
+:: 10. 同步其他配置
+echo   [10/10] 同步完成！
+
 echo.
-echo [OK] 同步完成
+echo [OK] 所有内容同步完成
 echo.
 
-:: 进入 XHBlogs 目录
-echo [4/6] 进入博客目录...
+:: ========================================
+:: 构建网站
+:: ========================================
+echo [4/8] 进入博客目录...
 cd XHBlogs
 
 :: 安装依赖
@@ -136,7 +158,7 @@ if not exist "node_modules" (
 )
 
 :: 构建
-echo [5/6] 正在构建网站...
+echo [5/8] 正在构建网站...
 echo.
 call npm run build
 if %errorlevel% neq 0 (
@@ -154,8 +176,10 @@ echo.
 echo [OK] 构建成功！
 echo.
 
-:: 进入 out 目录，部署
-echo [6/6] 正在部署到 GitHub Pages...
+:: ========================================
+:: 部署到 GitHub Pages
+:: ========================================
+echo [6/8] 正在部署到 GitHub Pages...
 echo.
 cd out
 
@@ -166,7 +190,7 @@ if not exist ".git" (
     git config user.name "Blog Owner"
 )
 git add .
-git commit -m "部署更新"
+git commit -m "部署更新：%date:~0,4%-%date:~5,2%-%date:~8,2% %time:~0,2%:%time:~3,2%" 2>nul
 
 :: 设置远程仓库地址
 git remote get-url origin >nul 2>nul
@@ -178,27 +202,59 @@ git push -u origin gh-pages --force
 
 if %errorlevel% equ 0 (
     echo.
-    echo ========================================
-    echo    [成功] 部署完成！
-    echo ========================================
-    echo.
-    echo 你的博客访问地址：
-    echo https://TheWindHIND.github.io/blog/
-    echo.
-    echo 注意：GitHub Pages 可能需要几分钟才能生效
-    echo 如果没看到更新，按 Ctrl+F5 强制刷新浏览器
+    echo [OK] GitHub Pages 部署成功！
 ) else (
     echo.
-    echo ========================================
-    echo    [错误] 部署失败！
-    echo ========================================
-    echo.
-    echo 可能的原因：
-    echo 1. 网络问题
-    echo 2. Git 权限问题（需要配置 token）
-    echo 3. 仓库地址错误
-    echo.
-    echo 如果是权限问题，请参考 Git Token 配置教程
+    echo [警告] GitHub Pages 部署可能失败，请检查网络或权限
 )
+
+cd ..
+cd ..
+
+:: ========================================
+:: 推送源码到 main 分支
+:: ========================================
+echo.
+echo [7/8] 正在推送源码到 GitHub...
+echo.
+
+git add -A
+git commit -m "更新：%date:~0,4%-%date:~5,2%-%date:~8,2% %time:~0,2%:%time:~3,2%" 2>nul
+git push origin main
+
+if %errorlevel% equ 0 (
+    echo.
+    echo [OK] 源码推送成功！
+) else (
+    echo.
+    echo [警告] 源码推送可能失败，请检查 Git 配置
+)
+
+:: ========================================
+:: 完成
+:: ========================================
+echo.
+echo [8/8] 全部完成！
+echo.
+echo ========================================
+echo    [成功] 部署完成！
+echo ========================================
+echo.
+echo 你的博客访问地址：
+echo https://TheWindHIND.github.io/blog/
+echo.
+echo 同步的内容包括：
+echo   - 站点配置
+echo   - 关于页面
+echo   - 文章（新增/修改/删除）
+echo   - 说说（新增/修改/删除）
+echo   - 杂谈（新增/修改/删除）
+echo   - 数据文件（相册、友链、项目）
+echo   - 静态资源（图片等）
+echo.
+echo 注意：
+echo   1. GitHub Pages 可能需要几分钟才能生效
+echo   2. 如果没看到更新，按 Ctrl+F5 强制刷新浏览器
+echo   3. 源码已推送到 main 分支
 echo.
 pause

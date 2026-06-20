@@ -5,22 +5,21 @@ echo    一键同步控制面板内容到博客
 echo ========================================
 echo.
 cd /d "%~dp0"
-
 echo 正在同步...
 echo.
 
 :: 同步站点配置
-echo   [1/6] 同步站点配置...
+echo   [1/7] 同步站点配置...
 copy /y "my-blog-manager\siteConfig.ts" "XHBlogs\siteConfig.ts" >nul
 
 :: 同步关于页面
-echo   [2/6] 同步关于页面...
+echo   [2/7] 同步关于页面...
 if exist "my-blog-manager\app\about\about.md" (
     copy /y "my-blog-manager\app\about\about.md" "XHBlogs\app\about\about.md" >nul
 )
 
 :: 同步文章（先清空再复制，确保删除的内容也同步）
-echo   [3/6] 同步文章...
+echo   [3/7] 同步文章...
 if exist "XHBlogs\posts" (
     del /q "XHBlogs\posts\*.md" 2>nul
 )
@@ -46,7 +45,7 @@ if not exist "XHBlogs\posts\*.md" (
 )
 
 :: 同步说说（先清空再复制）
-echo   [4/6] 同步说说...
+echo   [4/7] 同步说说...
 if exist "XHBlogs\moments" (
     del /q "XHBlogs\moments\*.md" 2>nul
 )
@@ -55,7 +54,7 @@ if exist "my-blog-manager\moments" (
 )
 
 :: 同步杂谈（先清空再复制）
-echo   [5/6] 同步杂谈...
+echo   [5/7] 同步杂谈...
 if exist "XHBlogs\chatters" (
     del /q "XHBlogs\chatters\*.md" 2>nul
 )
@@ -77,9 +76,15 @@ if not exist "XHBlogs\chatters\*.md" (
 )
 
 :: 同步数据文件（相册、友链、项目等）
-echo   [6/6] 同步数据文件...
+echo   [6/7] 同步数据文件...
 if exist "my-blog-manager\data" (
     xcopy /e /y /q "my-blog-manager\data\*" "XHBlogs\data\" >nul 2>nul
+)
+
+:: 同步静态资源（public 目录 - 图片等）
+echo   [7/7] 同步静态资源（图片等）...
+if exist "my-blog-manager\public" (
+    xcopy /e /y /q "my-blog-manager\public\*" "XHBlogs\public\" >nul 2>nul
 )
 
 echo.
@@ -94,6 +99,7 @@ echo   - 文章（posts）
 echo   - 说说（moments）
 echo   - 杂谈（chatters）
 echo   - 数据文件（data）
+echo   - 静态资源（public - 图片等）
 echo.
 echo 注意：同步后需要重新构建部署才能在网站上看到更新
 echo 可以双击"一键部署网站.bat"来完成构建和部署
