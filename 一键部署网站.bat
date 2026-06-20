@@ -236,6 +236,36 @@ if %errorlevel% equ 0 (
 echo.
 echo [8/8] 全部完成！
 echo.
+
+:: ========================================
+:: 显示仓库最新更改日期
+:: ========================================
+echo ========================================
+echo    📅 仓库最新更新信息
+echo ========================================
+echo.
+
+:: 获取 main 分支最新提交日期
+for /f "delims=" %%a in ('git log -1 --format^=%%ci main 2^>nul') do set MAIN_DATE=%%a
+if defined MAIN_DATE (
+    echo   📝 源码（main分支）：
+    echo      %MAIN_DATE%
+) else (
+    echo   ⚠️  无法获取源码更新日期
+)
+
+echo.
+
+:: 获取 gh-pages 分支最新提交日期
+for /f "delims=" %%a in ('git log -1 --format^=%%ci origin/gh-pages 2^>nul') do set PAGES_DATE=%%a
+if defined PAGES_DATE (
+    echo   🌐 网站（gh-pages分支）：
+    echo      %PAGES_DATE%
+) else (
+    echo   ⚠️  无法获取网站更新日期
+)
+
+echo.
 echo ========================================
 echo    [成功] 部署完成！
 echo ========================================
