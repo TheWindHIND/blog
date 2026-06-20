@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { siteConfig } from '@/siteConfig';
 
 export default function CyberCat() {
   const [isPetted, setIsPetted] = useState(false);
@@ -9,6 +10,35 @@ export default function CyberCat() {
   const [inputValue, setInputValue] = useState('');
   const [isThinking, setIsThinking] = useState(false);
   const chatTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // 从配置读取桌宠设置（与控制中心同步的 desktopPetConfig）
+  const petConfig = siteConfig.desktopPetConfig || {
+    petName: "银狼",
+    petImage: "/silver-wolf.png",
+    randomQuotes: ["你好~"],
+    clickReplies: ["别碰我~"],
+    feedReply: "谢谢~",
+    thinkingReply: "让我想想...",
+    errorReply: "网络出问题了...",
+    inputPlaceholder: "说点啥...",
+  };
+
+  // 处理图片路径（支持 basePath - 从 __NEXT_DATA__ 读取）
+  const getImageSrc = () => {
+    if (typeof window !== 'undefined') {
+      // @ts-ignore
+      const basePath = window.__NEXT_DATA__?.runtimeConfig?.basePath || '';
+      const img = petConfig.petImage || "/silver-wolf.png";
+      if (img.startsWith('http')) {
+        return img;
+      }
+      if (img.startsWith('/')) {
+        return basePath + img;
+      }
+      return basePath + '/' + img;
+    }
+    return petConfig.petImage || "/silver-wolf.png";
+  };
 
   // --- 💬 说话功能 ---
   const speak = (text: string, duration = 6000) => {
@@ -19,30 +49,25 @@ export default function CyberCat() {
     }, duration);
   };
 
-  // --- 🖱️ 交互事件：点击银狼 ---
+  // --- 🖱️ 交互事件：点击桌宠 ---
   const handlePetCat = () => {
     if (isPetted) return;
     setIsPetted(true);
-    const petLines = [
-      "唔... 别随便碰我，小心我黑你电脑~",
-      "哼，手往哪放呢？",
-      "真是的... 好吧，只许摸一下哦",
-      "喂，别以为这样我就会放过你",
-    ];
-    const randomLine = petLines[Math.floor(Math.random() * petLines.length)];
+    const clickReplies = petConfig.clickReplies || ["别碰我~"];
+    const randomLine = clickReplies[Math.floor(Math.random() * clickReplies.length)];
     speak(randomLine, 2500);
     setTimeout(() => {
       setIsPetted(false);
     }, 1500);
   };
 
-  // --- 🎮 交互事件：投喂能量饮料 ---
+  // --- 🎮 交互事件：投喂 ---
   const handleFeed = async (e: React.MouseEvent) => {
     e.stopPropagation();
     if (isThinking) return;
     setShowInput(false);
     setIsThinking(true);
-    speak("哦？能量饮料？... 好吧，勉强收下了", 4000);
+    speak(petConfig.feedReply || "谢谢~", 4000);
     try {
       const res = await fetch('/api/chat', {
         method: 'POST',
@@ -53,7 +78,7 @@ export default function CyberCat() {
       const data = await res.json();
       speak(data.reply, 8000);
     } catch (error) {
-      speak("... 网络有点卡，不过饮料挺好喝的", 4000);
+      speak(petConfig.errorReply || "... 网络有点卡", 4000);
     } finally {
       setIsThinking(false);
     }
@@ -67,7 +92,7 @@ export default function CyberCat() {
     setInputValue('');
     setShowInput(false);
     setIsThinking(true);
-    speak("让我想想...", 3000);
+    speak(petConfig.thinkingReply || "让我想想...", 3000);
     try {
       const res = await fetch('/api/chat', {
         method: 'POST',
@@ -78,34 +103,23 @@ export default function CyberCat() {
       const data = await res.json();
       speak(data.reply, 8000);
     } catch (error) {
-      speak("网络好像出问题了... 哼，肯定是运营商的锅", 4000);
+      speak(petConfig.errorReply || "网络好像出问题了...", 4000);
     } finally {
       setIsThinking(false);
     }
   };
 
-  // --- ⏳ 随机挂机语录（银狼风格）---
+  // --- ⏳ 随机挂机语录 ---
   useEffect(() => {
-    const randomBarks = [
-      "又在摸鱼？小心我黑掉你的屏幕~",
-      "无聊... 有没有什么有趣的网站可以黑一下？",
-      "哼，这种程度的代码也敢拿出来？",
-      "喂，别盯着我看，小心我把你摄像头打开~",
-      "嗯？你说什么？我在打游戏呢...",
-      "任务完成，收工~",
-      "哼，本小姐可是天才黑客银狼！",
-      "无聊到想睡觉了...",
-      "今天又黑掉了几个网站呢~",
-      "啧，又有漏洞？真是的...",
-    ];
+    const randomQuotes = petConfig.randomQuotes || ["你好~"];
     const randomTalkInterval = setInterval(() => {
       if (!speech && !showInput && !isThinking && Math.random() > 0.75) {
-        const randomMsg = randomBarks[Math.floor(Math.random() * randomBarks.length)];
+        const randomMsg = randomQuotes[Math.floor(Math.random() * randomQuotes.length)];
         speak(randomMsg, 4500);
       }
     }, 18000);
     return () => clearInterval(randomTalkInterval);
-  }, [speech, showInput, isThinking]);
+  }, [speech, showInput, isThinking, petConfig.randomQuotes]);
 
   return (
     <motion.div
@@ -133,7 +147,7 @@ export default function CyberCat() {
         </AnimatePresence>
       </div>
 
-      {/* 🐺 银狼本体 & 交互按钮区 */}
+      {/* 🐺 桌宠本体 & 交互按钮区 */}
       <div className="relative">
         {/* 左侧按钮 */}
         <div className="absolute -left-14 top-1/2 -translate-y-1/2 flex flex-col gap-2 z-20">
@@ -150,7 +164,7 @@ export default function CyberCat() {
               <path fillRule="evenodd" d="M4.804 21.644A6.707 6.707 0 006 21.75a6.721 6.721 0 003.583-1.029c.774.182 1.584.279 2.417.279 5.322 0 9.75-3.97 9.75-9 0-5.03-4.428-9-9.75-9s-9.75 3.97-9.75 9c0 2.409 1.025 4.587 2.674 6.192.232.226.277.428.254.543a3.73 3.73 0 01-.814 1.686.75.75 0 00.44 1.223zM8.25 10.875a1.125 1.125 0 100 2.25 1.125 1.125 0 000-2.25zM10.875 12a1.125 1.125 0 112.25 0 1.125 1.125 0 01-2.25 0zm4.875-1.125a1.125 1.125 0 100 2.25 1.125 1.125 0 000-2.25z" clipRule="evenodd" />
             </svg>
           </button>
-          {/* 🎮 投喂按钮（能量饮料） */}
+          {/* 🎮 投喂按钮 */}
           <button
             onClick={handleFeed}
             disabled={isThinking}
@@ -161,41 +175,41 @@ export default function CyberCat() {
           </button>
         </div>
 
-        {/* 银狼图片容器 */}
+        {/* 桌宠图片容器 */}
         <div
           className="w-[140px] h-[100px] relative cursor-pointer"
           onClick={handlePetCat}
         >
           <style>{`
-            .silver-wolf-img {
+            .pet-img {
               width: 100%;
               height: 100%;
               object-fit: contain;
               filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.15));
             }
-            .wolf-breathing {
-              animation: wolf-breathe 3s ease-in-out infinite;
+            .pet-breathing {
+              animation: pet-breathe 3s ease-in-out infinite;
             }
-            .wolf-petted {
-              animation: wolf-shake 0.5s ease-in-out;
+            .pet-petted {
+              animation: pet-shake 0.5s ease-in-out;
             }
-            .wolf-thinking {
-              animation: wolf-breathe 1.5s ease-in-out infinite;
+            .pet-thinking {
+              animation: pet-breathe 1.5s ease-in-out infinite;
             }
-            @keyframes wolf-breathe {
+            @keyframes pet-breathe {
               0%, 100% { transform: scale(1) translateY(0); }
               50% { transform: scale(1.03) translateY(-2px); }
             }
-            @keyframes wolf-shake {
+            @keyframes pet-shake {
               0%, 100% { transform: rotate(0deg); }
               25% { transform: rotate(-5deg) scale(1.05); }
               75% { transform: rotate(5deg) scale(1.05); }
             }
           `}</style>
           <img
-            src="/silver-wolf.png"
-            alt="银狼"
-            className={`silver-wolf-img ${isPetted ? 'wolf-petted' : isThinking ? 'wolf-thinking' : 'wolf-breathing'}`}
+            src={getImageSrc()}
+            alt={petConfig.petName || "桌宠"}
+            className={`pet-img ${isPetted ? 'pet-petted' : isThinking ? 'pet-thinking' : 'pet-breathing'}`}
           />
         </div>
       </div>
@@ -214,7 +228,7 @@ export default function CyberCat() {
               type="text"
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
-              placeholder="跟银狼说点啥..."
+              placeholder={petConfig.inputPlaceholder || "说点啥..."}
               className="bg-transparent border-none outline-none text-sm px-3 py-1 w-full dark:text-white placeholder-gray-400"
               disabled={isThinking}
               autoFocus
