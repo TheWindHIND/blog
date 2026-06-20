@@ -29,7 +29,7 @@ export const siteConfig = {
 
   // 5. 首页照片墙预览图
   photoWallImage: "https://bu.dusays.com/2026/03/24/69c1e38b4c370.jpg",
-  cloudMusicIds: ["2648538864", "3330630999", "435278010", "3342981041", "2699991455", "2124462307", "1404797306", "2600863278", "2635014361"],
+  cloudMusicIds: ["2648538864", "3330630999", "435278010", "3342981041", "2699991455", "2124462307", "1404797306", "2600863278", "2635014361", "2619647262", "2750140001", "1480346244", "2115107622", "2016400471", "2158558246", "1391419936", "28875230", "3386721238", "2147129034", "2604150904", "2618274718", "1368726318"],
   social: {
     github: "https://github.com/TheWindHIND",
     gitee: "",
@@ -50,16 +50,16 @@ export const siteConfig = {
   picBedToken: "31062355-2d2c-4a65-a4d5-0080f3la6d19", // 留空，等你能在后台填入并覆写
 
   // 👇 【新增】：全局背景弹幕配置
-  danmakuList: ["无聊中", "Ciallo～(∠・ω< )⌒★", "关注藏枫喵！关注藏枫谢谢喵！关注藏枫喵！关注藏枫谢谢喵！", "在干嘛呢？", "有笨蛋嘛？", "前方高能反应！", "睡大觉中", "到底在干嘛？"],
+  danmakuList: ["2333", "嗯....不知道写什么了", "无聊中", "Ciallo～(∠・ω< )⌒★", "关注藏枫喵！关注藏枫谢谢喵！关注藏枫喵！关注藏枫谢谢喵！", "在干嘛呢？", "有笨蛋嘛？", "前方高能反应！", "睡大觉中", "到底在干嘛？"],
   gitalkConfig: {
-    clientID: "",
-    clientSecret: "",
-    repo: "",
-    owner: "",
-    admin: [""],
+    clientID: "Ov23liSsNiOif0G7BsGL",
+    clientSecret: "69a8052318ae5003e59a04e7b83b4dd067aa7552",
+    repo: "blogpinglunComment",
+    owner: "TheWindHIND",
+    admin: ["TheWindHIND"],
   },
   buildDate: "2026-06-20T04:02:00", // 建站日期
-  footerBadges: [],
+  footerBadges: [{"name": "Next.js", "color": "text-cyan-400", "svg": "<path d=\"M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z\"/>"}],
   icpConfig: {
     name: "",
     link: "",
