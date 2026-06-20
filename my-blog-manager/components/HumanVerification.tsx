@@ -23,12 +23,13 @@ export default function HumanVerification({ isOpen, onClose, onSuccess }: HumanV
 
   // 验证逻辑
   const handleVerify = () => {
-    const correctAnswer = 0.1 + 0.2; // JavaScript 经典浮点数问题：0.30000000000000004
-    const inputNum = parseFloat(inputValue);
+    // 匹配规则：0.3 后面跟任意数量的零，再跟至少一个非零数字
+    // 例如：0.301、0.3000004、0.30000000000000004 都算通过
+    const pattern = /^0?\.30+[1-9]/;
     
     if (inputValue === '0.3' || inputValue === '.3') {
       setVerificationStatus('failed');
-    } else if (!isNaN(inputNum) && Math.abs(inputNum - correctAnswer) < 0.000000000000001) {
+    } else if (pattern.test(inputValue)) {
       setVerificationStatus('success');
       if (onSuccess) {
         setTimeout(() => {
