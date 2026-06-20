@@ -1,5 +1,5 @@
 @echo off
-chcp 936 >nul
+chcp 65001 >nul
 echo ========================================
 echo    一键部署网站到 GitHub Pages
 echo    （完整同步 + 构建 + 部署 + 推送源码）
