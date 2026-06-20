@@ -84,7 +84,12 @@ export function MusicProvider({ children }: { children: ReactNode }) {
     let isMounted = true;
     const fetchMusicData = async () => {
       try {
-        const res = await fetch(`/api/music?ids=${siteConfig.cloudMusicIds.join(',')}`);
+        // 处理 basePath，适配 GitHub Pages 子路径部署
+        const path = window.location.pathname;
+        const pathParts = path.split('/').filter(Boolean);
+        const basePath = pathParts.length > 0 && pathParts[0] === 'blog' ? '/blog' : '';
+        
+        const res = await fetch(`${basePath}/music-data.json`);
         const rawResults = await res.json();
 
         const mergedPlaylist = rawResults
