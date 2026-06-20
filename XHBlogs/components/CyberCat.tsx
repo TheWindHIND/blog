@@ -9,6 +9,17 @@ export default function CyberCat() {
   const [showInput, setShowInput] = useState(false);
   const [inputValue, setInputValue] = useState('');
   const [isThinking, setIsThinking] = useState(false);
+  const [catImageUrl, setCatImageUrl] = useState('/siamese-cat.png');
+
+  // 处理 basePath，适配 GitHub Pages 子路径部署
+  useEffect(() => {
+    const path = window.location.pathname;
+    // 从路径中提取 basePath（比如 /blog/posts/welcome -> /blog）
+    const pathParts = path.split('/').filter(Boolean);
+    if (pathParts.length > 0 && pathParts[0] === 'blog') {
+      setCatImageUrl('/blog/siamese-cat.png');
+    }
+  }, []);
 
   const chatTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -174,7 +185,7 @@ export default function CyberCat() {
             .cat-sprite {
               width: 100%;
               height: 100%;
-              background-image: url('/siamese-cat.png'); 
+              background-image: url('${catImageUrl}'); 
               background-size: 300% 300%; 
               background-repeat: no-repeat;
               image-rendering: pixelated; 
