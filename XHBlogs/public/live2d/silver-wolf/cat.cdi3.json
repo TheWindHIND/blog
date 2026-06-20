@@ -1,0 +1,545 @@
+{
+	"Version": 3,
+	"Parameters": [
+		{
+			"Id": "Paramtoshi",
+			"GroupId": "ParamGroup3",
+			"Name": "环-透视"
+		},
+		{
+			"Id": "Paramxuanzhuan",
+			"GroupId": "ParamGroup3",
+			"Name": "环-旋转"
+		},
+		{
+			"Id": "Paramye1",
+			"GroupId": "ParamGroup4",
+			"Name": "屏-透视"
+		},
+		{
+			"Id": "Paramye2",
+			"GroupId": "ParamGroup4",
+			"Name": "屏-旋转1"
+		},
+		{
+			"Id": "Paramye3",
+			"GroupId": "ParamGroup4",
+			"Name": "屏-旋转2"
+		},
+		{
+			"Id": "Paramye4",
+			"GroupId": "ParamGroup4",
+			"Name": "屏-旋转3"
+		},
+		{
+			"Id": "Paramye5",
+			"GroupId": "ParamGroup4",
+			"Name": "屏-旋转4"
+		},
+		{
+			"Id": "Paramye6",
+			"GroupId": "ParamGroup4",
+			"Name": "屏-旋转5"
+		},
+		{
+			"Id": "Paramye7",
+			"GroupId": "ParamGroup4",
+			"Name": "屏-旋转6"
+		},
+		{
+			"Id": "Paramye8",
+			"GroupId": "ParamGroup4",
+			"Name": "屏-旋转7"
+		},
+		{
+			"Id": "Paramye9",
+			"GroupId": "ParamGroup4",
+			"Name": "屏-旋转8"
+		},
+		{
+			"Id": "Paramye10",
+			"GroupId": "ParamGroup4",
+			"Name": "屏-翻转"
+		},
+		{
+			"Id": "Paramye11",
+			"GroupId": "ParamGroup4",
+			"Name": "屏-倾斜"
+		},
+		{
+			"Id": "ParamAngleX",
+			"GroupId": "",
+			"Name": "角度 X"
+		},
+		{
+			"Id": "ParamAngleY",
+			"GroupId": "",
+			"Name": "角度 Y"
+		},
+		{
+			"Id": "ParamAngleZ",
+			"GroupId": "",
+			"Name": "角度 Z"
+		},
+		{
+			"Id": "ParamBreath",
+			"GroupId": "",
+			"Name": "呼吸"
+		},
+		{
+			"Id": "ParamEyeLOpen",
+			"GroupId": "",
+			"Name": "左眼　开闭"
+		},
+		{
+			"Id": "ParamEyeROpen",
+			"GroupId": "",
+			"Name": "右眼   开闭"
+		},
+		{
+			"Id": "ParamMouseX",
+			"GroupId": "",
+			"Name": "鼠标X"
+		},
+		{
+			"Id": "ParamMouseY",
+			"GroupId": "",
+			"Name": "鼠标Y"
+		},
+		{
+			"Id": "ParamMouseRightDown",
+			"GroupId": "",
+			"Name": "鼠标右键按下"
+		},
+		{
+			"Id": "ParamMouseLeftDown",
+			"GroupId": "",
+			"Name": "鼠标左键按下"
+		},
+		{
+			"Id": "CatParamLeftHandDown",
+			"GroupId": "",
+			"Name": "键盘按下"
+		},
+		{
+			"Id": "ParamEyeBallX",
+			"GroupId": "",
+			"Name": "眼珠 X"
+		},
+		{
+			"Id": "ParamEyeBallY",
+			"GroupId": "",
+			"Name": "眼珠 Y"
+		},
+		{
+			"Id": "ParamMouthForm",
+			"GroupId": "",
+			"Name": "嘴　变形"
+		},
+		{
+			"Id": "ParamMouthOpenY",
+			"GroupId": "",
+			"Name": "嘴　张开和闭合"
+		},
+		{
+			"Id": "Param",
+			"GroupId": "",
+			"Name": "眼罩"
+		},
+		{
+			"Id": "Param11",
+			"GroupId": "",
+			"Name": "眼镜"
+		},
+		{
+			"Id": "Param2",
+			"GroupId": "",
+			"Name": "呆呆眼"
+		},
+		{
+			"Id": "Param27",
+			"GroupId": "",
+			"Name": "问号"
+		},
+		{
+			"Id": "Param9",
+			"GroupId": "",
+			"Name": "爱心出现"
+		},
+		{
+			"Id": "Param3",
+			"GroupId": "ParamGroup",
+			"Name": "手出现"
+		},
+		{
+			"Id": "Param18",
+			"GroupId": "ParamGroup",
+			"Name": "功德"
+		},
+		{
+			"Id": "Param45",
+			"GroupId": "ParamGroup",
+			"Name": "敲打"
+		},
+		{
+			"Id": "Param19",
+			"GroupId": "ParamGroup",
+			"Name": "长包"
+		},
+		{
+			"Id": "Param22",
+			"GroupId": "ParamGroup",
+			"Name": "包透明度"
+		},
+		{
+			"Id": "Param43",
+			"GroupId": "",
+			"Name": "头环出现"
+		},
+		{
+			"Id": "Param44",
+			"GroupId": "",
+			"Name": "屏幕出现"
+		},
+		{
+			"Id": "Param4",
+			"GroupId": "",
+			"Name": "游戏机"
+		},
+		{
+			"Id": "Param5",
+			"GroupId": "",
+			"Name": "switch"
+		},
+		{
+			"Id": "Param6",
+			"GroupId": "",
+			"Name": "吹泡泡"
+		},
+		{
+			"Id": "Param7",
+			"GroupId": "",
+			"Name": "捏脸手"
+		},
+		{
+			"Id": "Param8",
+			"GroupId": "",
+			"Name": "捏脸"
+		},
+		{
+			"Id": "Param12",
+			"GroupId": "",
+			"Name": "别吵操作"
+		},
+		{
+			"Id": "Param13",
+			"GroupId": "",
+			"Name": "摸头手"
+		},
+		{
+			"Id": "Param14",
+			"GroupId": "",
+			"Name": "摸摸头"
+		},
+		{
+			"Id": "Param15",
+			"GroupId": "",
+			"Name": "鼓气"
+		},
+		{
+			"Id": "Param16",
+			"GroupId": "",
+			"Name": "脸红"
+		},
+		{
+			"Id": "Param17",
+			"GroupId": "",
+			"Name": "脸黑"
+		},
+		{
+			"Id": "Param20",
+			"GroupId": "ParamGroup2",
+			"Name": "包晃动1"
+		},
+		{
+			"Id": "Param21",
+			"GroupId": "ParamGroup2",
+			"Name": "包晃动2"
+		},
+		{
+			"Id": "Param23",
+			"GroupId": "ParamGroup2",
+			"Name": "右眼xy1"
+		},
+		{
+			"Id": "Param24",
+			"GroupId": "ParamGroup2",
+			"Name": "右眼xy2"
+		},
+		{
+			"Id": "Param25",
+			"GroupId": "ParamGroup2",
+			"Name": "左眼xy1"
+		},
+		{
+			"Id": "Param26",
+			"GroupId": "ParamGroup2",
+			"Name": "左眼xy2"
+		},
+		{
+			"Id": "Param28",
+			"GroupId": "ParamGroup2",
+			"Name": "头发1x1"
+		},
+		{
+			"Id": "Param29",
+			"GroupId": "ParamGroup2",
+			"Name": "头发1x2"
+		},
+		{
+			"Id": "Param30",
+			"GroupId": "ParamGroup2",
+			"Name": "头发2x1"
+		},
+		{
+			"Id": "Param31",
+			"GroupId": "ParamGroup2",
+			"Name": "头发2x2"
+		},
+		{
+			"Id": "Param32",
+			"GroupId": "ParamGroup2",
+			"Name": "后发1x1"
+		},
+		{
+			"Id": "Param33",
+			"GroupId": "ParamGroup2",
+			"Name": "后发1x2"
+		},
+		{
+			"Id": "Param34",
+			"GroupId": "ParamGroup2",
+			"Name": "前发Y1x1"
+		},
+		{
+			"Id": "Param35",
+			"GroupId": "ParamGroup2",
+			"Name": "前发Y1x2"
+		},
+		{
+			"Id": "Param36",
+			"GroupId": "ParamGroup2",
+			"Name": "侧发Y1x1"
+		},
+		{
+			"Id": "Param37",
+			"GroupId": "ParamGroup2",
+			"Name": "侧发Y1x2"
+		},
+		{
+			"Id": "Param38",
+			"GroupId": "ParamGroup2",
+			"Name": "后发Y1x1"
+		},
+		{
+			"Id": "Param39",
+			"GroupId": "ParamGroup2",
+			"Name": "后发Y1x2"
+		},
+		{
+			"Id": "Param40",
+			"GroupId": "ParamGroup2",
+			"Name": "马尾Y1x1"
+		},
+		{
+			"Id": "Param41",
+			"GroupId": "ParamGroup2",
+			"Name": "马尾Y1x2"
+		},
+		{
+			"Id": "Param42",
+			"GroupId": "ParamGroup2",
+			"Name": "眼睛Y"
+		}
+	],
+	"ParameterGroups": [
+		{
+			"Id": "ParamGroup3",
+			"GroupId": "",
+			"Name": "头环"
+		},
+		{
+			"Id": "ParamGroup4",
+			"GroupId": "",
+			"Name": "屏幕"
+		},
+		{
+			"Id": "ParamGroup",
+			"GroupId": "",
+			"Name": "敲黑塔"
+		},
+		{
+			"Id": "ParamGroup2",
+			"GroupId": "",
+			"Name": "物理效果"
+		}
+	],
+	"Parts": [
+		{
+			"Id": "Part27",
+			"Name": "正面"
+		},
+		{
+			"Id": "Part",
+			"Name": "拿手机"
+		},
+		{
+			"Id": "Part6",
+			"Name": "基础桌宠"
+		},
+		{
+			"Id": "Part26",
+			"Name": "背面"
+		},
+		{
+			"Id": "Part28",
+			"Name": "框8正面"
+		},
+		{
+			"Id": "Part29",
+			"Name": "框7正面"
+		},
+		{
+			"Id": "Part30",
+			"Name": "框6正面"
+		},
+		{
+			"Id": "Part23",
+			"Name": "框5正面"
+		},
+		{
+			"Id": "Part25",
+			"Name": "框4正面"
+		},
+		{
+			"Id": "Part31",
+			"Name": "框3正面"
+		},
+		{
+			"Id": "Part32",
+			"Name": "框2正面"
+		},
+		{
+			"Id": "Part33",
+			"Name": "框1正面"
+		},
+		{
+			"Id": "Part2",
+			"Name": "右"
+		},
+		{
+			"Id": "Part3",
+			"Name": "左"
+		},
+		{
+			"Id": "Part4",
+			"Name": "左"
+		},
+		{
+			"Id": "Part5",
+			"Name": "右"
+		},
+		{
+			"Id": "Part7",
+			"Name": "泡泡"
+		},
+		{
+			"Id": "Part22",
+			"Name": "立体方块"
+		},
+		{
+			"Id": "Part9",
+			"Name": "小电视"
+		},
+		{
+			"Id": "Part11",
+			"Name": "狼宝"
+		},
+		{
+			"Id": "Part21",
+			"Name": "鼠标"
+		},
+		{
+			"Id": "Part10",
+			"Name": "黑塔小人"
+		},
+		{
+			"Id": "Part34",
+			"Name": "框8背面"
+		},
+		{
+			"Id": "Part35",
+			"Name": "框7背面"
+		},
+		{
+			"Id": "Part36",
+			"Name": "框6背面"
+		},
+		{
+			"Id": "Part37",
+			"Name": "框5背面"
+		},
+		{
+			"Id": "Part24",
+			"Name": "框4背面"
+		},
+		{
+			"Id": "Part38",
+			"Name": "框3背面"
+		},
+		{
+			"Id": "Part39",
+			"Name": "框2背面"
+		},
+		{
+			"Id": "Part40",
+			"Name": "框1背面"
+		},
+		{
+			"Id": "Part12",
+			"Name": "眼镜"
+		},
+		{
+			"Id": "Part17",
+			"Name": "眼罩"
+		},
+		{
+			"Id": "Part13",
+			"Name": "呆呆表情"
+		},
+		{
+			"Id": "Part14",
+			"Name": "眼睛"
+		},
+		{
+			"Id": "Part18",
+			"Name": "右手（敲）"
+		},
+		{
+			"Id": "Part19",
+			"Name": "右手"
+		},
+		{
+			"Id": "Part20",
+			"Name": "左手"
+		},
+		{
+			"Id": "Part15",
+			"Name": "左眼"
+		},
+		{
+			"Id": "Part16",
+			"Name": "右眼"
+		}
+	]
+}

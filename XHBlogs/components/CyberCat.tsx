@@ -4,14 +4,20 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { siteConfig } from '@/siteConfig';
 
 export default function CyberCat() {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const appRef = useRef<any>(null);
+  const modelRef = useRef<any>(null);
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [isPetted, setIsPetted] = useState(false);
   const [speech, setSpeech] = useState<string | null>(null);
   const [showInput, setShowInput] = useState(false);
   const [inputValue, setInputValue] = useState('');
   const [isThinking, setIsThinking] = useState(false);
   const chatTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
-  // 从配置读取桌宠设置（与控制中心同步的 desktopPetConfig）
+  // 从配置读取桌宠设置
   const petConfig = siteConfig.desktopPetConfig || {
     petName: "银狼",
     petImage: "/silver-wolf.png",
@@ -23,21 +29,15 @@ export default function CyberCat() {
     inputPlaceholder: "说点啥...",
   };
 
-  // 处理图片路径（支持 basePath - 从 __NEXT_DATA__ 读取）
-  const getImageSrc = () => {
+  // 获取 basePath
+  const getBasePath = () => {
     if (typeof window !== 'undefined') {
-      // @ts-ignore
-      const basePath = window.__NEXT_DATA__?.runtimeConfig?.basePath || '';
-      const img = petConfig.petImage || "/silver-wolf.png";
-      if (img.startsWith('http')) {
-        return img;
+      const pathname = window.location.pathname;
+      if (pathname.startsWith('/blog')) {
+        return '/blog';
       }
-      if (img.startsWith('/')) {
-        return basePath + img;
-      }
-      return basePath + '/' + img;
     }
-    return petConfig.petImage || "/silver-wolf.png";
+    return '';
   };
 
   // --- 💬 说话功能 ---
@@ -121,8 +121,141 @@ export default function CyberCat() {
     return () => clearInterval(randomTalkInterval);
   }, [speech, showInput, isThinking, petConfig.randomQuotes]);
 
+  // --- 🎨 初始化 Live2D 模型（延迟加载，等页面就绪后再加载）---
+  useEffect(() => {
+    if (!canvasRef.current || isLoaded || isLoading) return;
+
+    // 延迟 2 秒再开始加载，让页面先加载完成
+    const timer = setTimeout(() => {
+      setIsLoading(true);
+      
+      const basePath = getBasePath();
+      const modelJson = `${basePath}/live2d/silver-wolf/cat.model3.json`;
+
+      // 动态加载脚本
+      const loadScript = (src: string): Promise<void> => {
+        return new Promise((resolve, reject) => {
+          const script = document.createElement('script');
+          script.src = src;
+          script.onload = () => resolve();
+          script.onerror = () => reject(new Error(`Failed to load ${src}`));
+          document.head.appendChild(script);
+        });
+      };
+
+      const initLive2D = async () => {
+        try {
+          // 加载 pixi.js
+          await loadScript('https://cdn.jsdelivr.net/npm/pixi.js@7.3.2/dist/pixi.min.js');
+          
+          // 加载 pixi-live2d-display
+          await loadScript('https://cdn.jsdelivr.net/npm/pixi-live2d-display@0.4.0/dist/index.min.js');
+
+          const PIXI = (window as any).PIXI;
+          const { Live2DModel } = (window as any).PIXI.live2d;
+
+          if (!PIXI || !Live2DModel) {
+            throw new Error('Live2D library not loaded');
+          }
+
+          // 创建 PIXI 应用
+          const app = new PIXI.Application({
+            view: canvasRef.current,
+            width: 200,
+            height: 200,
+            transparent: true,
+            backgroundAlpha: 0,
+          });
+
+          appRef.current = app;
+
+          // 加载 Live2D 模型
+          const model = await Live2DModel.from(modelJson, {
+            autoInteract: false,
+          });
+
+          modelRef.current = model;
+
+          // 调整模型大小和位置
+          model.scale.set(0.3);
+          model.x = app.screen.width / 2;
+          model.y = app.screen.height / 2;
+          model.anchor.set(0.5, 0.5);
+
+          app.stage.addChild(model);
+
+          // 鼠标跟随
+          const handleMouseMove = (e: MouseEvent) => {
+            if (!modelRef.current || !containerRef.current) return;
+            
+            const rect = containerRef.current.getBoundingClientRect();
+            const centerX = rect.left + rect.width / 2;
+            const centerY = rect.top + rect.height / 2;
+            
+            // 计算鼠标相对于中心的偏移
+            const deltaX = (e.clientX - centerX) / window.innerWidth;
+            const deltaY = (e.clientY - centerY) / window.innerHeight;
+            
+            // 限制范围
+            const clampedX = Math.max(-1, Math.min(1, deltaX * 2));
+            const clampedY = Math.max(-1, Math.min(1, deltaY * 2));
+
+            // 设置模型参数（头部跟随鼠标）
+            if (modelRef.current.internalModel) {
+              const coreModel = modelRef.current.internalModel.coreModel;
+              if (coreModel) {
+                try {
+                  coreModel.setParameterValueById('ParamAngleX', clampedX * 30);
+                  coreModel.setParameterValueById('ParamAngleY', clampedY * 30);
+                } catch (e) {
+                  // 参数可能不存在，忽略
+                }
+              }
+            }
+          };
+
+          window.addEventListener('mousemove', handleMouseMove);
+
+          setIsLoaded(true);
+          setIsLoading(false);
+
+          return () => {
+            window.removeEventListener('mousemove', handleMouseMove);
+          };
+        } catch (error) {
+          console.error('Failed to initialize Live2D:', error);
+          setIsLoading(false);
+          // 失败时不做处理，保留静态图片作为后备
+        }
+      };
+
+      initLive2D();
+    }, 2000);
+
+    return () => {
+      clearTimeout(timer);
+      if (appRef.current) {
+        appRef.current.destroy();
+      }
+    };
+  }, [isLoaded, isLoading]);
+
+  // 静态图片路径
+  const getImageSrc = () => {
+    const img = petConfig.petImage || "/silver-wolf.png";
+    if (img.startsWith('http')) {
+      return img;
+    }
+    const basePath = getBasePath();
+    if (img.startsWith('/')) {
+      return basePath + img;
+    }
+    return basePath + '/' + img;
+  };
+
   return (
     <motion.div
+      ref={containerRef}
       drag
       dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
       dragElastic={0.1}
@@ -175,42 +308,59 @@ export default function CyberCat() {
           </button>
         </div>
 
-        {/* 桌宠图片容器 */}
+        {/* 桌宠容器 */}
         <div
-          className="w-[140px] h-[100px] relative cursor-pointer"
+          className="w-[200px] h-[200px] relative cursor-pointer overflow-visible"
           onClick={handlePetCat}
         >
-          <style>{`
-            .pet-img {
-              width: 100%;
-              height: 100%;
-              object-fit: contain;
-              filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.15));
-            }
-            .pet-breathing {
-              animation: pet-breathe 3s ease-in-out infinite;
-            }
-            .pet-petted {
-              animation: pet-shake 0.5s ease-in-out;
-            }
-            .pet-thinking {
-              animation: pet-breathe 1.5s ease-in-out infinite;
-            }
-            @keyframes pet-breathe {
-              0%, 100% { transform: scale(1) translateY(0); }
-              50% { transform: scale(1.03) translateY(-2px); }
-            }
-            @keyframes pet-shake {
-              0%, 100% { transform: rotate(0deg); }
-              25% { transform: rotate(-5deg) scale(1.05); }
-              75% { transform: rotate(5deg) scale(1.05); }
-            }
-          `}</style>
-          <img
-            src={getImageSrc()}
-            alt={petConfig.petName || "桌宠"}
-            className={`pet-img ${isPetted ? 'pet-petted' : isThinking ? 'pet-thinking' : 'pet-breathing'}`}
+          {/* 静态图片（始终显示，Live2D 加载后覆盖在上面） */}
+          <div className="absolute inset-0 flex items-center justify-center">
+            <style>{`
+              .pet-img {
+                width: 140px;
+                height: 100px;
+                object-fit: contain;
+                filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.15));
+              }
+              .pet-breathing {
+                animation: pet-breathe 3s ease-in-out infinite;
+              }
+              .pet-petted {
+                animation: pet-shake 0.5s ease-in-out;
+              }
+              .pet-thinking {
+                animation: pet-breathe 1.5s ease-in-out infinite;
+              }
+              @keyframes pet-breathe {
+                0%, 100% { transform: scale(1) translateY(0); }
+                50% { transform: scale(1.03) translateY(-2px); }
+              }
+              @keyframes pet-shake {
+                0%, 100% { transform: rotate(0deg); }
+                25% { transform: rotate(-5deg) scale(1.05); }
+                75% { transform: rotate(5deg) scale(1.05); }
+              }
+            `}</style>
+            <img
+              src={getImageSrc()}
+              alt={petConfig.petName || "桌宠"}
+              className={`pet-img ${isPetted ? 'pet-petted' : isThinking ? 'pet-thinking' : 'pet-breathing'}`}
+            />
+          </div>
+
+          {/* Live2D Canvas（加载完成后淡入显示） */}
+          <canvas
+            ref={canvasRef}
+            className={`absolute inset-0 w-full h-full transition-opacity duration-500 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}
+            style={{ filter: 'drop-shadow(0 4px 12px rgba(0, 0, 0, 0.15))' }}
           />
+
+          {/* 加载提示 */}
+          {isLoading && !isLoaded && (
+            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 text-xs text-gray-500 dark:text-gray-400 bg-white/80 dark:bg-slate-800/80 px-2 py-1 rounded-full backdrop-blur-sm">
+              Live2D 加载中...
+            </div>
+          )}
         </div>
       </div>
 
@@ -241,7 +391,7 @@ export default function CyberCat() {
               }`}
             >
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
-                <path d="M3.105 2.289a.75.75 0 00-.826.95l1.414 4.925A1.5 1.5 0 005.135 9.25h6.115a.75.75 0 010 1.5H5.135a1.5 1.5 0 00-1.442 1.086l-1.414 4.926a.75.75 0 00.826.95 28.896 28.896 0 0015.293-7.154.75.75 0 000-1.115A28.897 28.897 0 003.105 2.289z" />
+                <path d="M3.105 2.289a.75.75 0 00-.826.95l1.414 4.925A1.5 1.5 0 005.135 9.25h6.115a.75.75 0 010 1.5H5.135a1.5 1.5 0 00-1.442 1.086l-1.414 4.926a.75.75 0 00.826.95 28.896 28.897 0 0015.293-7.154.75.75 0 000-1.115A28.897 28.897 0 003.105 2.289z" />
               </svg>
             </button>
           </motion.form>
