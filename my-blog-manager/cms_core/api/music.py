@@ -98,3 +98,30 @@ def query_netease_music(song_id: str):
     # 所有接口都失败
     print(f"[API] ❌ 所有接口都查询失败 (ID: {song_id})")
     return {"success": False, "message": "查询失败，可能是网络问题或歌曲无版权"}
+
+
+@router.get("/lyric/{song_id}")
+def get_netease_lyric(song_id: str):
+    """获取网易云歌曲歌词"""
+    print(f"\n[API] 📝 收到获取歌词请求, ID: {song_id}")
+    
+    try:
+        api_url = f"https://music.163.com/api/song/lyric?id={song_id}&lv=-1&kv=-1&tv=-1"
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+            "Referer": "https://music.163.com/",
+        }
+        response = requests.get(api_url, headers=headers, timeout=5)
+        data = response.json()
+        
+        lrc = data.get("lrc", {}).get("lyric", "")
+        if lrc:
+            print(f"[API] ✅ 歌词获取成功，共 {len(lrc)} 字符")
+            return {"success": True, "data": {"lrc": lrc}}
+        else:
+            print(f"[API] ⚠️  该歌曲暂无歌词")
+            return {"success": True, "data": {"lrc": ""}}
+            
+    except Exception as e:
+        print(f"[API] ❌ 歌词获取失败: {str(e)}")
+        return {"success": False, "message": str(e)}

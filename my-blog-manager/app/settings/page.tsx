@@ -37,7 +37,8 @@ function SettingsContent() {
       artist: '',
       url: '',
       cover: '',
-      neteaseId: ''
+      neteaseId: '',
+      lrc: ''
     },
     bgImages: [...(siteConfig.bgImages || [])],
     gitalkConfig: siteConfig.gitalkConfig || {
@@ -129,6 +130,18 @@ function SettingsContent() {
     }
   };
 
+  const fetchMusicLyric = async (id: string) => {
+    try {
+      const configRes = await fetch(`/backend_config.json?t=${Date.now()}`);
+      const configData = await configRes.json();
+      const res = await fetch(`http://127.0.0.1:${configData.api_port}/api/music/lyric/${id}`, { cache: 'no-store' });
+      const data = await res.json();
+      return data.success ? data.data.lrc : '';
+    } catch (error) {
+      return '';
+    }
+  };
+
   useEffect(() => {
     const loadInitialMusicDetails = async () => {
       const details: Record<string, any> = { ...musicDetails };
@@ -207,13 +220,13 @@ function SettingsContent() {
       name: newSong.name,
       artist: newSong.artist || '未知歌手',
       url: `/music/${newSong.url}`,
-      cover: newSong.cover ? `/music/${newSong.cover}` : '',
-      lrc: '',
+      cover: newSong.cover ? (newSong.cover.startsWith('http') ? newSong.cover : `/music/${newSong.cover}`) : '',
+      lrc: newSong.lrc || '',
       neteaseId: newSong.neteaseId || ''
     };
 
     handleUpdate('localMusic', [...formData.localMusic, songToAdd]);
-    handleUpdate('newLocalMusic', { name: '', artist: '', url: '', cover: '', neteaseId: '' });
+    handleUpdate('newLocalMusic', { name: '', artist: '', url: '', cover: '', neteaseId: '', lrc: '' });
     showToast("✅ 成功添加本地音乐！", "success");
   };
 
@@ -232,14 +245,17 @@ function SettingsContent() {
     }
 
     const info = await fetchMusicDetail(neteaseId);
+    const lyric = await fetchMusicLyric(neteaseId);
+    
     if (info && !info.error) {
       handleUpdate('newLocalMusic', {
         ...formData.newLocalMusic,
         name: info.name,
         artist: info.artist || info.author || '',
-        cover: info.cover || info.pic || ''
+        cover: info.cover || info.pic || '',
+        lrc: lyric || ''
       });
-      showToast("✅ 已自动填充歌曲信息！", "success");
+      showToast("✅ 已自动填充歌曲信息和歌词！", "success");
     } else {
       showToast("获取歌曲信息失败，请手动填写", "error");
     }
