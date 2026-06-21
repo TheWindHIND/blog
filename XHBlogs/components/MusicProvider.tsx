@@ -44,6 +44,7 @@ interface MusicContextType {
   volume: number;
   isMuted: boolean;
   playMode: PlayMode;
+  localPreloadStatus: Record<string, 'pending' | 'loading' | 'done' | 'error'>; // 本地音乐预加载状态
   togglePlay: () => void;
   nextSong: () => void;
   prevSong: () => void;
@@ -52,6 +53,7 @@ interface MusicContextType {
   setVolume: (value: number) => void;
   toggleMute: () => void;
   togglePlayMode: () => void;
+  preloadLocalSongs: () => void; // 预加载本地音乐
 }
 
 const MusicContext = createContext<MusicContextType | null>(null);
@@ -71,6 +73,10 @@ export function MusicProvider({ children }: { children: ReactNode }) {
   const [volume, setVolumeState] = useState(1);
   const [isMuted, setIsMuted] = useState(false);
   const [playMode, setPlayMode] = useState<PlayMode>('loop');
+  
+  // 🌟 本地音乐预加载状态
+  const [localPreloadStatus, setLocalPreloadStatus] = useState<Record<string, 'pending' | 'loading' | 'done' | 'error'>>({});
+  const preloadAudioRefs = useRef<Record<string, HTMLAudioElement>>({});
 
   const audioRef = useRef<HTMLAudioElement>(null);
 
@@ -108,16 +114,24 @@ export function MusicProvider({ children }: { children: ReactNode }) {
         // 2. 加载本地音乐
         const localSongs = (siteConfig.localMusic || [])
           .filter((song: any) => song && song.url)
-          .map((song: any) => ({
-            id: song.id || `local_${Date.now()}_${Math.random()}`,
-            title: song.name || song.title || '未知歌曲',
-            artist: song.artist || song.author || '未知歌手',
-            cover: song.cover || song.pic || 'https://bu.dusays.com/2026/03/24/69c24230a5ff8.jpg',
-            src: `${basePath}${song.url}`, // 处理 basePath
-            lrcUrl: null,
-            lyrics: song.lrc ? parseLrc(song.lrc) : [],
-            type: 'local'
-          }));
+          .map((song: any) => {
+            // 处理封面路径：如果是相对路径，添加 basePath
+            let coverUrl = song.cover || song.pic || 'https://bu.dusays.com/2026/03/24/69c24230a5ff8.jpg';
+            if (coverUrl && !coverUrl.startsWith('http')) {
+              coverUrl = `${basePath}/music/${coverUrl.replace(/^\/music\//, '')}`;
+            }
+            
+            return {
+              id: song.id || `local_${Date.now()}_${Math.random()}`,
+              title: song.name || song.title || '未知歌曲',
+              artist: song.artist || song.author || '未知歌手',
+              cover: coverUrl,
+              src: `${basePath}${song.url}`, // 处理 basePath
+              lrcUrl: null,
+              lyrics: song.lrc ? parseLrc(song.lrc) : [],
+              type: 'local'
+            };
+          });
 
         // 3. 合并歌单（网易云在前，本地在后）
         const mergedPlaylist = [...neteaseSongs, ...localSongs];
@@ -266,6 +280,35 @@ export function MusicProvider({ children }: { children: ReactNode }) {
       return 'loop';
     });
   };
+  
+  // 🌟 预加载本地音乐
+  const preloadLocalSongs = () => {
+    const localSongs = playlist.filter(song => song.type === 'local');
+    if (localSongs.length === 0) return;
+    
+    localSongs.forEach((song, index) => {
+      // 延迟加载，避免同时加载太多
+      setTimeout(() => {
+        if (preloadAudioRefs.current[song.id]) return; // 已经在加载了
+        
+        setLocalPreloadStatus(prev => ({ ...prev, [song.id]: 'loading' }));
+        
+        const audio = new Audio();
+        audio.preload = 'auto';
+        audio.src = song.src;
+        
+        audio.addEventListener('canplaythrough', () => {
+          setLocalPreloadStatus(prev => ({ ...prev, [song.id]: 'done' }));
+        });
+        
+        audio.addEventListener('error', () => {
+          setLocalPreloadStatus(prev => ({ ...prev, [song.id]: 'error' }));
+        });
+        
+        preloadAudioRefs.current[song.id] = audio;
+      }, index * 500); // 每首歌间隔 500ms 开始加载
+    });
+  };
 
   const currentSong = playlist[currentIndex];
 
@@ -273,6 +316,7 @@ export function MusicProvider({ children }: { children: ReactNode }) {
     <MusicContext.Provider value={{
         playlist, currentIndex, currentSong, isPlaying, progress, currentTime, duration, currentLyric, isLoading,
         volume, isMuted, playMode, // 暴露新状态
+        localPreloadStatus, preloadLocalSongs, // 本地音乐预加载
         togglePlay, nextSong, prevSong, handleSeek,
         playSong, setVolume, toggleMute, togglePlayMode // 暴露新方法
     }}>
