@@ -280,14 +280,38 @@ export default function MusicSection({
                       onChange={e => handleUpdate('newLocalMusic', { ...formData.newLocalMusic, url: e.target.value })} 
                       className="flex-1 bg-white dark:bg-slate-900 border-none rounded-xl px-3 py-2 text-sm outline-none shadow-sm" 
                     />
+                    <button 
+                      onClick={async () => {
+                        try {
+                          // @ts-ignore
+                          if (window.pywebview && window.pywebview.api) {
+                            // @ts-ignore
+                            const result = await window.pywebview.api.select_audio_file();
+                            if (result.success) {
+                              handleUpdate('newLocalMusic', { ...formData.newLocalMusic, url: result.filename });
+                            }
+                          } else {
+                            alert('请在桌面应用中使用此功能');
+                          }
+                        } catch (e) {
+                          console.error('选择音频文件失败:', e);
+                        }
+                      }}
+                      className="px-3 py-2 bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 rounded-xl text-xs font-bold hover:bg-emerald-500 hover:text-white transition-colors"
+                    >
+                      📁 选择
+                    </button>
                   </div>
                   <p className="text-[10px] text-slate-400 mt-1">
-                    请先将MP3文件放到 public/music/ 目录下
+                    点击选择按钮，从本地选择 MP3 文件
                   </p>
                 </div>
 
                 <div>
-                  <label className="text-xs text-slate-500 mb-1 block">封面文件名（可选）</label>
+                  <label className="text-xs text-slate-500 mb-1 block">
+                    封面图片（可选）
+                    <span className="text-emerald-500 ml-1">优先从网易云获取</span>
+                  </label>
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-slate-400">/music/</span>
                     <input 
@@ -296,8 +320,33 @@ export default function MusicSection({
                       value={formData.newLocalMusic.cover} 
                       onChange={e => handleUpdate('newLocalMusic', { ...formData.newLocalMusic, cover: e.target.value })} 
                       className="flex-1 bg-white dark:bg-slate-900 border-none rounded-xl px-3 py-2 text-sm outline-none shadow-sm" 
+                      disabled={formData.newLocalMusic.neteaseId && formData.newLocalMusic.cover?.startsWith('http')}
                     />
+                    <button 
+                      onClick={async () => {
+                        try {
+                          // @ts-ignore
+                          if (window.pywebview && window.pywebview.api) {
+                            // @ts-ignore
+                            const result = await window.pywebview.api.select_cover_file();
+                            if (result.success) {
+                              handleUpdate('newLocalMusic', { ...formData.newLocalMusic, cover: result.filename });
+                            }
+                          } else {
+                            alert('请在桌面应用中使用此功能');
+                          }
+                        } catch (e) {
+                          console.error('选择封面文件失败:', e);
+                        }
+                      }}
+                      className="px-3 py-2 bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 rounded-xl text-xs font-bold hover:bg-emerald-500 hover:text-white transition-colors"
+                    >
+                      🖼️ 选择
+                    </button>
                   </div>
+                  <p className="text-[10px] text-slate-400 mt-1">
+                    填写网易云ID后会自动获取封面，也可以手动选择本地图片
+                  </p>
                 </div>
               </div>
 

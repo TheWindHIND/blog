@@ -88,6 +88,62 @@ class WindowAPI:
     def minimize_window(self): webview.windows[0].minimize()
     def maximize_window(self): webview.windows[0].toggle_fullscreen()
     def close_window(self): on_closed()
+    
+    def select_audio_file(self):
+        """选择音频文件，默认打开 music 目录"""
+        try:
+            music_dir = os.path.join(EXE_DIR, 'public', 'music')
+            if not os.path.exists(music_dir):
+                os.makedirs(music_dir, exist_ok=True)
+            
+            result = webview.windows[0].create_file_dialog(
+                webview.OPEN_DIALOG,
+                directory=music_dir,
+                file_types=('音频文件 (*.mp3;*.wav;*.flac;*.m4a;*.ogg)', '所有文件 (*.*)')
+            )
+            
+            if result and len(result) > 0:
+                file_path = result[0]
+                file_name = os.path.basename(file_path)
+                
+                # 如果文件不在 music 目录下，复制过去
+                target_path = os.path.join(music_dir, file_name)
+                if os.path.abspath(file_path) != os.path.abspath(target_path):
+                    import shutil
+                    shutil.copy2(file_path, target_path)
+                
+                return {"success": True, "filename": file_name}
+            return {"success": False, "message": "未选择文件"}
+        except Exception as e:
+            return {"success": False, "message": str(e)}
+    
+    def select_cover_file(self):
+        """选择封面图片，默认打开 music 目录"""
+        try:
+            music_dir = os.path.join(EXE_DIR, 'public', 'music')
+            if not os.path.exists(music_dir):
+                os.makedirs(music_dir, exist_ok=True)
+            
+            result = webview.windows[0].create_file_dialog(
+                webview.OPEN_DIALOG,
+                directory=music_dir,
+                file_types=('图片文件 (*.jpg;*.jpeg;*.png;*.gif;*.webp)', '所有文件 (*.*)')
+            )
+            
+            if result and len(result) > 0:
+                file_path = result[0]
+                file_name = os.path.basename(file_path)
+                
+                # 如果文件不在 music 目录下，复制过去
+                target_path = os.path.join(music_dir, file_name)
+                if os.path.abspath(file_path) != os.path.abspath(target_path):
+                    import shutil
+                    shutil.copy2(file_path, target_path)
+                
+                return {"success": True, "filename": file_name}
+            return {"success": False, "message": "未选择文件"}
+        except Exception as e:
+            return {"success": False, "message": str(e)}
 
 def run_api(port):
     # 🌟 强制后端在 EXE 所在的真实目录工作，确保能读取到旁边的 data/ 等数据
