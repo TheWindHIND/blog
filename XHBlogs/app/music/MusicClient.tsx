@@ -269,12 +269,12 @@ export default function MusicClient() {
                                     className={`w-full h-full object-cover transition-opacity duration-300 ${song.type === 'local' && localPreloadStatus[song.id] !== 'done' && localPreloadStatus[song.id] !== 'error' ? 'opacity-0' : 'opacity-100'}`} 
                                     loading="lazy" 
                                   />
-                                  {/* 本地音乐预加载 - 淡灰色亚克力转圈 */}
+                                  {/* 本地音乐预加载 - 亚克力转圈（主题色） */}
                                   {song.type === 'local' && localPreloadStatus[song.id] !== 'done' && localPreloadStatus[song.id] !== 'error' && (
-                                    <div className="absolute inset-0 bg-slate-200/40 dark:bg-slate-700/40 backdrop-blur-md flex items-center justify-center">
+                                    <div className="absolute inset-0 bg-white/30 dark:bg-slate-900/30 backdrop-blur-md flex items-center justify-center">
                                       <div className="relative w-5 h-5 md:w-6 md:h-6">
-                                        <div className="absolute inset-0 rounded-full border-2 border-slate-300/50 dark:border-slate-500/50" />
-                                        <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-slate-500 dark:border-t-slate-300 animate-spin" />
+                                        <div className="absolute inset-0 rounded-full border-2 border-indigo-500/20 dark:border-indigo-400/20" />
+                                        <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-indigo-500 dark:border-t-indigo-400 animate-spin" />
                                       </div>
                                     </div>
                                   )}
