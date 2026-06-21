@@ -41,6 +41,54 @@ def dict_to_ts_string(data, indent=2):
     return json.dumps(data, ensure_ascii=False)
 
 
+def find_matching_bracket(content, start_pos, open_bracket='['):
+    """
+    智能查找匹配的闭合括号位置，不会被字符串里的括号干扰
+    支持 [] 和 {}
+    返回闭合括号的索引位置，找不到返回 -1
+    """
+    close_bracket = ']' if open_bracket == '[' else '}'
+    depth = 1
+    in_string = False
+    string_quote = ''
+    escaped = False
+    
+    i = start_pos + 1
+    while i < len(content):
+        char = content[i]
+        
+        if escaped:
+            escaped = False
+            i += 1
+            continue
+        
+        if char == '\\' and in_string:
+            escaped = True
+            i += 1
+            continue
+        
+        if char in ('"', "'", '`'):
+            if not in_string:
+                in_string = True
+                string_quote = char
+            elif char == string_quote:
+                in_string = False
+            i += 1
+            continue
+        
+        if not in_string:
+            if char == open_bracket:
+                depth += 1
+            elif char == close_bracket:
+                depth -= 1
+                if depth == 0:
+                    return i
+        
+        i += 1
+    
+    return -1
+
+
 # =========================================================
 # 🚀 接口 1：读取配置 (GET) - 终极安全隔离版 (🌟 修复布尔值读取)
 # =========================================================
@@ -185,17 +233,38 @@ def update_site_config(payload: Dict[str, Any] = Body(...)):
                 val_str = json.dumps(value, ensure_ascii=False)
 
             if isinstance(value, dict):
-                pattern = rf"({key}\s*:\s*)\{{[\s\S]*?\}}"
+                # 🌟 智能匹配：用 find_matching_bracket 精确找到闭合 }，不会被字符串里的 } 干扰
+                match = re.search(rf'({key}\s*:\s*)\{{', content)
+                if match:
+                    open_brace_pos = match.end() - 1  # { 的位置
+                    close_brace_pos = find_matching_bracket(content, open_brace_pos, '{')
+                    if close_brace_pos != -1:
+                        prefix = content[:match.start()]
+                        key_part = match.group(1)
+                        suffix = content[close_brace_pos + 1:]
+                        content = prefix + key_part + val_str + suffix
+                        print(f"  ✅ 成功修改并落盘(智能匹配) -> [{key}]")
+                        updated_count += 1
             elif isinstance(value, list):
-                pattern = rf"({key}\s*:\s*)\[[\s\S]*?\]"
+                # 🌟 智能匹配：用 find_matching_bracket 精确找到闭合 ]，不会被字符串里的 ] 干扰
+                match = re.search(rf'({key}\s*:\s*)\[', content)
+                if match:
+                    open_bracket_pos = match.end() - 1  # [ 的位置
+                    close_bracket_pos = find_matching_bracket(content, open_bracket_pos, '[')
+                    if close_bracket_pos != -1:
+                        prefix = content[:match.start()]
+                        key_part = match.group(1)
+                        suffix = content[close_bracket_pos + 1:]
+                        content = prefix + key_part + val_str + suffix
+                        print(f"  ✅ 成功修改并落盘(智能匹配) -> [{key}]")
+                        updated_count += 1
             else:
                 # 写入正则也能匹配布尔值和数字，所以替换没有问题
                 pattern = rf"({key}\s*:\s*)(['\"`][\s\S]*?['\"`]|true|false|\d+)"
-
-            if re.search(pattern, content):
-                content = re.sub(pattern, lambda m: m.group(1) + val_str, content, count=1)
-                print(f"  ✅ 成功修改并落盘 -> [{key}]")
-                updated_count += 1
+                if re.search(pattern, content):
+                    content = re.sub(pattern, lambda m: m.group(1) + val_str, content, count=1)
+                    print(f"  ✅ 成功修改并落盘 -> [{key}]")
+                    updated_count += 1
 
         # 写入物理磁盘
         with open(config_path, 'w', encoding='utf-8') as f:
