@@ -111,14 +111,26 @@ export function MusicProvider({ children }: { children: ReactNode }) {
           console.warn('网易云音乐加载失败', e);
         }
 
-        // 2. 加载本地音乐
+        // 2. 加载本地音乐（使用 jsDelivr CDN 加速）
         const localSongs = (siteConfig.localMusic || [])
           .filter((song: any) => song && song.url)
           .map((song: any) => {
-            // 处理封面路径：如果是相对路径，添加 basePath
+            // jsDelivr CDN 基础地址（加速 GitHub Pages 上的静态文件）
+            const jsDelivrBase = 'https://cdn.jsdelivr.net/gh/TheWindHIND/blog@gh-pages';
+            
+            // 处理音频文件路径：使用 jsDelivr CDN 加速
+            let audioUrl = song.url;
+            if (audioUrl && !audioUrl.startsWith('http')) {
+              // 去掉开头的 /music/，然后拼上 CDN 地址
+              const fileName = audioUrl.replace(/^\/music\//, '');
+              audioUrl = `${jsDelivrBase}/music/${fileName}`;
+            }
+            
+            // 处理封面路径：如果是相对路径，也用 CDN 加速
             let coverUrl = song.cover || song.pic || 'https://bu.dusays.com/2026/03/24/69c24230a5ff8.jpg';
             if (coverUrl && !coverUrl.startsWith('http')) {
-              coverUrl = `${basePath}/music/${coverUrl.replace(/^\/music\//, '')}`;
+              const fileName = coverUrl.replace(/^\/music\//, '');
+              coverUrl = `${jsDelivrBase}/music/${fileName}`;
             }
             
             return {
@@ -126,7 +138,7 @@ export function MusicProvider({ children }: { children: ReactNode }) {
               title: song.name || song.title || '未知歌曲',
               artist: song.artist || song.author || '未知歌手',
               cover: coverUrl,
-              src: `${basePath}${song.url}`, // 处理 basePath
+              src: audioUrl,
               lrcUrl: null,
               lyrics: song.lrc ? parseLrc(song.lrc) : [],
               type: 'local'
