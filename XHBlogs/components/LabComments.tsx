@@ -27,7 +27,6 @@ export default function LabComments({ pageId }: { pageId?: string }) {
       repo: siteConfig.gitalkConfig.repo,
       owner: siteConfig.gitalkConfig.owner,
       admin: siteConfig.gitalkConfig.admin,
-      proxy: '/api/github',
       id: finalId, // 这里的 ID 决定了留言板对应 GitHub 的哪个 Issue
       distractionFreeMode: false,
     });

@@ -25,9 +25,6 @@ export default function Comments() {
       owner: siteConfig.gitalkConfig.owner,
       admin: siteConfig.gitalkConfig.admin,
 
-      // 👇 指向我们自己的同源 API，彻底告别跨域和第三方拦截！
-      proxy: '/api/github',
-
       id: (pathname.replace(/\/$/, '') || '/').substring(0, 49),
       distractionFreeMode: false,
     });
