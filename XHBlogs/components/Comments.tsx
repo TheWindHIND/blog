@@ -27,6 +27,7 @@ export default function Comments() {
 
       id: (pathname.replace(/\/$/, '') || '/').substring(0, 49),
       distractionFreeMode: false,
+      proxy: 'https://cors-anywhere.azm.workers.dev/https://github.com/login/oauth/access_token',
     });
 
     gitalk.render(containerRef.current);

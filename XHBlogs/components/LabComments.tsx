@@ -29,6 +29,7 @@ export default function LabComments({ pageId }: { pageId?: string }) {
       admin: siteConfig.gitalkConfig.admin,
       id: finalId, // 这里的 ID 决定了留言板对应 GitHub 的哪个 Issue
       distractionFreeMode: false,
+      proxy: 'https://cors-anywhere.azm.workers.dev/https://github.com/login/oauth/access_token',
     });
 
     gitalk.render(containerRef.current);
