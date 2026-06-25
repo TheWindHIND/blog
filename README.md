@@ -121,6 +121,65 @@
 
 ---
 
+## 💬 评论系统（Giscus）
+
+博客使用 **Giscus** 作为评论系统，基于 GitHub Discussions，无需后端，免费稳定。
+
+### ✨ 特点
+- ✅ 基于 GitHub 账号，无需额外注册
+- ✅ 支持 Markdown 语法
+- ✅ 支持表情反应、回复、点赞
+- ✅ 无需后端服务，完全静态
+- ✅ 毛玻璃风格，与博客主题完美融合
+
+### 🔧 配置方法
+
+#### 第一步：启用 Discussions
+1. 打开你的评论仓库（例如 `blogpinglunComment`）
+2. 点击 **Settings**（设置）
+3. 往下找到 **Features**（功能）区域
+4. 勾选 **Discussions**（讨论）
+5. 页面自动刷新后，左边菜单栏会多出 Discussions 选项
+
+#### 第二步：安装 Giscus App
+1. 打开 https://github.com/apps/giscus
+2. 点击绿色的 **Install**（安装）按钮
+3. 选择 **Only select repositories**（仅选择仓库）
+4. 在下拉框中选择你的评论仓库
+5. 点击底部的 **Install**（安装）按钮
+6. 输入 GitHub 密码确认
+
+#### 第三步：获取配置信息
+1. 打开 https://giscus.app/zh-CN
+2. 按照页面提示填写仓库信息
+3. 选择 Discussion 分类（推荐用 **General** 或 **Announcements**）
+4. 页面会自动生成配置代码，包含 `repo-id` 和 `category-id`
+
+#### 第四步：填写博客配置
+1. 打开 `XHBlogs/siteConfig.ts` 文件
+2. 找到 `giscusConfig` 配置项
+3. 填写对应的配置信息：
+   - `repo`: 评论仓库名（格式：`用户名/仓库名`）
+   - `repoId`: 仓库 ID（从 Giscus 页面获取）
+   - `category`: Discussion 分类名
+   - `categoryId`: 分类 ID（从 Giscus 页面获取）
+4. 保存文件
+5. 双击「一键部署网站.bat」重新构建部署
+
+### 📝 使用说明
+- 访客点击「使用 GitHub 登录」即可发表评论
+- 评论会自动同步到 GitHub Discussions
+- 你可以在 GitHub 仓库的 Discussions 页面管理所有评论
+- 支持回复、点赞、表情反应等功能
+
+### ⚠️ 注意事项
+1. **评论仓库必须是公开的**（Public），否则访客无法看到评论
+2. **确保已安装 Giscus App** 并授权了评论仓库
+3. **首次加载可能较慢**，请耐心等待
+4. 如果评论区显示异常，尝试清除浏览器缓存后刷新
+
+---
+
 ## ❓ 常见问题
 
 ### Q: 为什么修改了内容但网站上没有更新？
