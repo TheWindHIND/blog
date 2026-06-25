@@ -53,12 +53,19 @@ export const siteConfig = {
 
   // 👇 【新增】：全局背景弹幕配置
   danmakuList: ["2333", "嗯....不知道写什么了", "无聊中", "Ciallo～(∠・ω< )⌒★", "关注藏枫喵！关注藏枫谢谢喵！关注藏枫喵！关注藏枫谢谢喵！", "在干嘛呢？", "有笨蛋嘛？", "前方高能反应！", "睡大觉中", "到底在干嘛？"],
-  gitalkConfig: {
-    clientID: "Ov23liSsNiOif0G7BsGL",
-    clientSecret: "69a8052318ae5003e59a04e7b83b4dd067aa7552",
-    repo: "blogpinglunComment",
-    owner: "TheWindHIND",
-    admin: ["TheWindHIND"],
+  // 👇 【Giscus评论配置】
+  giscusConfig: {
+    repo: "TheWindHIND/blogpinglunComment",
+    repoId: "R_kgDOTANQ7Q",
+    category: "General",
+    categoryId: "DIC_kwDOTANQ7c4C_4EV",
+    mapping: "pathname",
+    strict: "0",
+    reactionsEnabled: "1",
+    emitMetadata: "0",
+    inputPosition: "bottom",
+    theme: "preferred_color_scheme",
+    lang: "zh-CN",
   },
   buildDate: "2026-06-20T04:02:00", // 建站日期
   footerBadges: [{"name": "Next.js", "color": "text-cyan-400", "svg": "<path d=\"M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z\"/>"}],
