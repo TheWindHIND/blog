@@ -1,0 +1,8 @@
+1:"$Sreact.fragment"
+2:I[9553,["17","static/chunks/17-2c2177f9787adb29.js","287","static/chunks/287-3d58586054b5e1bc.js","109","static/chunks/109-6ac39650d994d5ab.js","869","static/chunks/869-fc49273cb63a3d25.js","20","static/chunks/app/chatter/page-f8d3279bbf90146e.js"],"default"]
+3:I[7877,["17","static/chunks/17-2c2177f9787adb29.js","287","static/chunks/287-3d58586054b5e1bc.js","109","static/chunks/109-6ac39650d994d5ab.js","869","static/chunks/869-fc49273cb63a3d25.js","20","static/chunks/app/chatter/page-f8d3279bbf90146e.js"],"default"]
+4:I[589,["17","static/chunks/17-2c2177f9787adb29.js","287","static/chunks/287-3d58586054b5e1bc.js","109","static/chunks/109-6ac39650d994d5ab.js","869","static/chunks/869-fc49273cb63a3d25.js","20","static/chunks/app/chatter/page-f8d3279bbf90146e.js"],"default"]
+5:I[484,[],"OutletBoundary"]
+6:"$Sreact.suspense"
+0:{"rsc":["$","$1","c",{"children":[["$","div",null,{"className":"min-h-screen relative pb-10","children":[["$","$L2",null,{}],["$","$L3",null,{"children":["$","$L4",null,{"chatters":[{"slug":"welcome","title":"欢迎来到云端杂谈","date":"2026-06-20 15:09:10","tags":["杂谈","欢迎"],"mood":"","cover":"https://backup.fukit.cn/autoupload/f/e6dvVv6sI6US7bqgWvSMp9iO_OyvX7mIgxFBfDMDErs/20260620/dtWz/0X0/186938d0e217fddf4c6274fb30f66ab7.webp","content":"\n这里是藏枫的云端杂谈，以后会在这里分享一些日常和想法~"}]}]}]]}],null,["$","$L5",null,{"children":["$","$6",null,{"name":"Next.MetadataOutlet","children":"$@7"}]}]]}],"isPartial":false,"staleTime":300,"varyParams":null,"buildId":"PrLbO_NFsKtPhVF6tqu8d"}
+7:null

@@ -1,0 +1,70 @@
+/* Giscus 暗色灰色主题 - 半透明毛玻璃效果 */
+:root {
+  /* 背景：深灰色半透明 */
+  --color-canvas-default: rgba(30, 41, 59, 0.75);
+  --color-canvas-overlay: rgba(15, 23, 42, 0.9);
+  --color-canvas-inset: rgba(51, 65, 85, 0.5);
+  --color-canvas-subtle: rgba(51, 65, 85, 0.6);
+  
+  /* 边框：深灰色半透明 */
+  --color-border-default: rgba(71, 85, 105, 0.6);
+  --color-border-muted: rgba(71, 85, 105, 0.4);
+  --color-border-subtle: rgba(71, 85, 105, 0.2);
+  
+  /* 文字颜色 - 确保清晰可读 */
+  --color-fg-default: #e2e8f0;
+  --color-fg-muted: #94a3b8;
+  --color-fg-subtle: #64748b;
+  --color-fg-on-emphasis: #ffffff;
+  
+  /* 强调色：indigo 色系，和博客主题一致 */
+  --color-accent-fg: #818cf8;
+  --color-accent-emphasis: #6366f1;
+  --color-accent-muted: rgba(129, 140, 248, 0.15);
+  --color-accent-subtle: rgba(129, 140, 248, 0.08);
+  
+  /* 状态色 */
+  --color-success-fg: #4ade80;
+  --color-danger-fg: #f87171;
+  --color-attention-fg: #fbbf24;
+  --color-severe-fg: #fb923c;
+  --color-done-fg: #c084fc;
+  --color-sponsors-fg: #fb7185;
+  
+  /* 按钮 */
+  --color-btn-bg: rgba(129, 140, 248, 0.1);
+  --color-btn-hover-bg: rgba(129, 140, 248, 0.18);
+  --color-btn-active-bg: rgba(129, 140, 248, 0.25);
+  --color-btn-primary-bg: #6366f1;
+  --color-btn-primary-hover-bg: #4f46e5;
+  --color-btn-primary-active-bg: #4338ca;
+  
+  /* 输入框 */
+  --color-input-bg: rgba(15, 23, 42, 0.5);
+  --color-input-border: rgba(71, 85, 105, 0.8);
+  
+  /* 分隔线 */
+  --color-divider: rgba(71, 85, 105, 0.5);
+}
+
+/* 评论卡片悬停效果 */
+.gsc-comment:hover {
+  background-color: rgba(51, 65, 85, 0.4) !important;
+}
+
+/* 反应按钮 */
+.gsc-reactions-button {
+  background: rgba(30, 41, 59, 0.5) !important;
+  border: 1px solid rgba(71, 85, 105, 0.5) !important;
+}
+
+.gsc-reactions-button:hover {
+  background: rgba(51, 65, 85, 0.7) !important;
+}
+
+/* 输入框毛玻璃效果 */
+.gsc-comment-box-textarea,
+.gsc-input {
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}

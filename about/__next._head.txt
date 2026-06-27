@@ -1,0 +1,6 @@
+1:"$Sreact.fragment"
+2:I[484,[],"ViewportBoundary"]
+3:I[484,[],"MetadataBoundary"]
+4:"$Sreact.suspense"
+5:I[6869,[],"IconMark"]
+0:{"rsc":["$","$1","h",{"children":[null,["$","$L2",null,{"children":[["$","meta","0",{"charSet":"utf-8"}],["$","meta","1",{"name":"viewport","content":"width=device-width, initial-scale=1"}]]}],["$","div",null,{"hidden":true,"children":["$","$L3",null,{"children":["$","$4",null,{"name":"Next.Metadata","children":[["$","title","0",{"children":"藏枫 の 猫窝"}],["$","meta","1",{"name":"description","content":"一个普普通通的学生党"}],["$","link","2",{"rel":"icon","href":"https://backup.fukit.cn/autoupload/f/e6dvVv6sI6US7bqgWvSMp9iO_OyvX7mIgxFBfDMDErs/20260620/2yXh/720X720/64BF4A8501F6A3C86735F561C6097D5E.jpg/webp"}],["$","link","3",{"rel":"apple-touch-icon","href":"https://backup.fukit.cn/autoupload/f/e6dvVv6sI6US7bqgWvSMp9iO_OyvX7mIgxFBfDMDErs/20260620/2yXh/720X720/64BF4A8501F6A3C86735F561C6097D5E.jpg/webp"}],["$","$L5","4",{}]]}]}]}],["$","meta",null,{"name":"next-size-adjust","content":""}]]}],"isPartial":false,"staleTime":300,"varyParams":null,"buildId":"PrLbO_NFsKtPhVF6tqu8d"}
