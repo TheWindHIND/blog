@@ -2,18 +2,26 @@
 import { useEffect, useRef } from 'react';
 import { usePathname } from 'next/navigation';
 import { siteConfig } from '../siteConfig';
+import { useTheme } from './ThemeProvider';
 
 // 🌟 专门为炼金实验室定制的 Giscus 组件
 export default function LabComments({ pageId }: { pageId?: string }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
+  const { isDark } = useTheme();
+  const iframeRef = useRef<HTMLIFrameElement | null>(null);
+
+  // 获取 Giscus 主题
+  const getGiscusTheme = () => {
+    return isDark ? 'dark' : 'light';
+  };
 
   useEffect(() => {
     if (!containerRef.current) return;
-
+    
     // 清空之前的评论区，防止切换时叠加
     containerRef.current.innerHTML = '';
-
+    
     // 动态加载 Giscus 脚本
     const script = document.createElement('script');
     script.src = 'https://giscus.app/client.js';
@@ -38,19 +46,43 @@ export default function LabComments({ pageId }: { pageId?: string }) {
     script.setAttribute('data-reactions-enabled', '1');
     script.setAttribute('data-emit-metadata', '0');
     script.setAttribute('data-input-position', 'bottom');
-    script.setAttribute('data-theme', 'preferred_color_scheme');
+    script.setAttribute('data-theme', getGiscusTheme());
     script.setAttribute('data-lang', 'zh-CN');
     script.setAttribute('data-loading', 'lazy');
-
+    
+    // 监听 Giscus 加载完成，保存 iframe 引用
+    const handleLoad = () => {
+      const iframe = containerRef.current?.querySelector('iframe.giscus-frame');
+      if (iframe) {
+        iframeRef.current = iframe as HTMLIFrameElement;
+      }
+    };
+    
+    script.addEventListener('load', handleLoad);
     containerRef.current.appendChild(script);
-
+    
     // 擦除 URL 中的 OAuth 凭证，防止刷新报错
     const url = new URL(window.location.href);
     if (url.searchParams.has('code')) {
       url.searchParams.delete('code');
       window.history.replaceState({}, document.title, url.toString());
     }
+    
+    return () => {
+      script.removeEventListener('load', handleLoad);
+    };
   }, [pathname, pageId]);
+
+  // 监听主题变化，动态切换 Giscus 主题
+  useEffect(() => {
+    if (iframeRef.current) {
+      iframeRef.current.contentWindow?.postMessage({
+        setConfig: {
+          theme: getGiscusTheme(),
+        }
+      }, 'https://giscus.app');
+    }
+  }, [isDark]);
 
   return (
     <div className="w-full mt-16 relative">
@@ -62,27 +94,33 @@ export default function LabComments({ pageId }: { pageId?: string }) {
           className="custom-giscus-glass"
         />
       </div>
-
       {/* 🌟 毛玻璃样式 */}
       <style jsx global>{`
         .custom-giscus-glass {
-          background: rgba(255, 255, 255, 0.05);
-          backdrop-filter: blur(12px);
-          -webkit-backdrop-filter: blur(12px);
-          border-radius: 16px;
-          padding: 24px;
-          border: 1px solid rgba(255, 255, 255, 0.1);
+          background: rgba(255, 255, 255, 0.35);
+          backdrop-filter: blur(20px);
+          -webkit-backdrop-filter: blur(20px);
+          border-radius: 24px;
+          padding: 32px;
+          border: 1px solid rgba(255, 255, 255, 0.4);
+          box-shadow: 0 8px 32px rgba(0, 0, 0, 0.06);
         }
         
-        @media (prefers-color-scheme: dark) {
-          .custom-giscus-glass {
-            background: rgba(0, 0, 0, 0.2);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-          }
+        /* 暗色模式 */
+        .dark .custom-giscus-glass {
+          background: rgba(15, 23, 42, 0.4);
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
         }
         
         .giscus {
           width: 100%;
+        }
+        
+        .giscus-frame {
+          width: 100%;
+          color-scheme: light dark;
+          background: transparent !important;
         }
       `}</style>
     </div>

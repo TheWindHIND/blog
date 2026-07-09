@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useRef } from 'react';
 import { siteConfig } from '../siteConfig';
+import { useTheme } from './ThemeProvider';
 
 interface MomentCommentsProps {
   id: string; // 必须传入说说的专属 ID
@@ -8,13 +9,20 @@ interface MomentCommentsProps {
 
 export default function MomentComments({ id }: MomentCommentsProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const { isDark } = useTheme();
+  const iframeRef = useRef<HTMLIFrameElement | null>(null);
+
+  // 获取 Giscus 主题
+  const getGiscusTheme = () => {
+    return isDark ? 'dark' : 'light';
+  };
 
   useEffect(() => {
     if (!containerRef.current) return;
-
+    
     // 清空重载，防止 React 严格模式下重复渲染
     containerRef.current.innerHTML = '';
-
+    
     // 动态加载 Giscus 脚本
     const script = document.createElement('script');
     script.src = 'https://giscus.app/client.js';
@@ -32,12 +40,36 @@ export default function MomentComments({ id }: MomentCommentsProps) {
     script.setAttribute('data-reactions-enabled', '0');
     script.setAttribute('data-emit-metadata', '0');
     script.setAttribute('data-input-position', 'bottom');
-    script.setAttribute('data-theme', 'preferred_color_scheme');
+    script.setAttribute('data-theme', getGiscusTheme());
     script.setAttribute('data-lang', 'zh-CN');
     script.setAttribute('data-loading', 'lazy');
-
+    
+    // 监听 Giscus 加载完成，保存 iframe 引用
+    const handleLoad = () => {
+      const iframe = containerRef.current?.querySelector('iframe.giscus-frame');
+      if (iframe) {
+        iframeRef.current = iframe as HTMLIFrameElement;
+      }
+    };
+    
+    script.addEventListener('load', handleLoad);
     containerRef.current.appendChild(script);
+    
+    return () => {
+      script.removeEventListener('load', handleLoad);
+    };
   }, [id]);
+
+  // 监听主题变化，动态切换 Giscus 主题
+  useEffect(() => {
+    if (iframeRef.current) {
+      iframeRef.current.contentWindow?.postMessage({
+        setConfig: {
+          theme: getGiscusTheme(),
+        }
+      }, 'https://giscus.app');
+    }
+  }, [isDark]);
 
   return (
     <div className="w-full relative">
@@ -95,6 +127,11 @@ export default function MomentComments({ id }: MomentCommentsProps) {
         /* 评论正文 */
         .moment-giscus .gsc-comment-body {
           font-size: 13px !important;
+        }
+        
+        .giscus-frame {
+          color-scheme: light dark;
+          background: transparent !important;
         }
       `}</style>
     </div>

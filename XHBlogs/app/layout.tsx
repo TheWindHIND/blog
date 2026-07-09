@@ -1,5 +1,6 @@
 import 'katex/dist/katex.min.css';
 import type { Metadata } from "next";
+import Script from 'next/script';
 import { Geist, Geist_Mono, Noto_Serif_SC } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "../components/ThemeProvider";
@@ -12,6 +13,7 @@ import BackgroundSlider from "../components/BackgroundSlider";
 import GlobalToolbox from "../components/GlobalToolbox";
 import SplashScreen from "../components/SplashScreen";
 import CyberCat from '../components/CyberCat';
+import VisitorCounter from '../components/VisitorCounter';
 import DanmakuBackground from '../components/DanmakuBackground';
 
 import MobileBackButton from '../components/MobileBackButton';
@@ -131,6 +133,8 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           <div className="hidden md:block">
             <CyberCat />
           </div>
+
+          <VisitorCounter />
 
         </ThemeProvider>
       </body>
