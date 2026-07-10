@@ -83,13 +83,6 @@ export const siteConfig = {
     errorReply: "网络好像出问题了... 哼，肯定是运营商的锅",
     inputPlaceholder: "跟银狼说点啥...",
   },
-
-  // 👇 访客统计配置
-  visitorCounter: {
-    enabled: true,
-    icon: "👥",
-    position: "bottom-right",
-  },
   friendLinkApplyFormat: "名称：藏枫の猫窝\n简介：我是简介\n链接：https://thewindhind.github.io/blog/\n头像：https://bu.dusays.com/2026/03/24/69c1e38ac1846.jpg",
   enableLevelSystem: true,
 };
