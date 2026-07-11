@@ -22,7 +22,7 @@ export const siteConfig = {
   useGradient: false,
   themeColors: ["#a18cd1", "#fbc2eb", "#a1c4fd", "#c2e9fb"], // 呼吸流动的颜色组合
 // 修改这里：变成图片数组
-  bgImages: ["https://backup.fukit.cn/autoupload/f/e6dvVv6sI6US7bqgWvSMp9iO_OyvX7mIgxFBfDMDErs/20260620/zIRy/980X686/331e06a4f9cd5c4fb345659bc3a503401296113267.jpg", "https://backup.fukit.cn/autoupload/f/e6dvVv6sI6US7bqgWvSMp9iO_OyvX7mIgxFBfDMDErs/20260620/0spQ/1920X1213/FE07BB3FA045CED1EC0ABF50D60CFC62.jpg", "https://backup.fukit.cn/autoupload/f/e6dvVv6sI6US7bqgWvSMp9iO_OyvX7mIgxFBfDMDErs/20260620/sjsy/1536X864/3589642B3225C4574266E1A475C330C7.jpg"],
+  bgImages: ["https://backup.fukit.cn/autoupload/f/e6dvVv6sI6US7bqgWvSMp9iO_OyvX7mIgxFBfDMDErs/20260620/zIRy/980X686/331e06a4f9cd5c4fb345659bc3a503401296113267.jpg", "https://backup.fukit.cn/autoupload/f/e6dvVv6sI6US7bqgWvSMp9iO_OyvX7mIgxFBfDMDErs/20260620/0spQ/1920X1213/FE07BB3FA045CED1EC0ABF50D60CFC62.jpg", "https://backup.fukit.cn/autoupload/f/e6dvVv6sI6US7bqgWvSMp9iO_OyvX7mIgxFBfDMDErs/20260620/sjsy/1536X864/3589642B3225C4574266E1A475C330C7.jpg", "https://backup.fukit.cn/autoupload/f/e6dvVv6sI6US7bqgWvSMp9iO_OyvX7mIgxFBfDMDErs/20260621/jTfu/0X0/cdbf41ce8489a6ac6bf06b6b75c5c8c4.webp", "https://backup.fukit.cn/autoupload/f/e6dvVv6sI6US7bqgWvSMp9iO_OyvX7mIgxFBfDMDErs/20260710/cfDK/0X0/b78ee957723a5b97f86ef0318722e9ad.webp", "https://backup.fukit.cn/autoupload/f/e6dvVv6sI6US7bqgWvSMp9iO_OyvX7mIgxFBfDMDErs/20260710/z019/0X0/eaa1c952461ec269b3c220793f7ec7d6.webp"],
 
   // 4. 文章默认封面图 (当 Markdown 没写 cover 时显示)
   defaultPostCover: "https://bu.dusays.com/2026/03/24/69c1e38b346cb.jpg",
