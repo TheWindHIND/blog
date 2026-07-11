@@ -60,6 +60,12 @@ export const siteConfig = {
     owner: "TheWindHIND",
     admin: ["TheWindHIND"],
   },
+  giscusConfig: {
+    repo: "TheWindHIND/blogpinglunComment",
+    repoId: "R_kgDOTANQ7Q",
+    category: "Announcements",
+    categoryId: "DIC_kwDOTANQ7c4C_4EU",
+  },
   buildDate: "2026-06-20T04:02:00", // 建站日期
   footerBadges: [{"name": "Next.js", "color": "text-cyan-400", "svg": "<path d=\"M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z\"/>"}],
   icpConfig: {
