@@ -87,7 +87,7 @@ export function MusicProvider({ children }: { children: ReactNode }) {
         const res = await fetch(`/api/music?ids=${siteConfig.cloudMusicIds.join(',')}`);
         const rawResults = await res.json();
 
-        const mergedPlaylist = rawResults
+        const cloudPlaylist = rawResults
           .filter((song: any) => song && song.url && !song.error)
           .map((song: any) => ({
             id: song.id || Math.random().toString(),
@@ -99,6 +99,21 @@ export function MusicProvider({ children }: { children: ReactNode }) {
             lyrics: song.lrc ? parseLrc(song.lrc) : []
           }));
 
+        // 加载本地音乐/音乐直链
+        const localPlaylist = (siteConfig.localMusic || [])
+          .filter((song: any) => song && song.url)
+          .map((song: any) => ({
+            id: song.id || Math.random().toString(),
+            title: song.name || '未知歌曲',
+            artist: song.artist || '未知歌手',
+            cover: song.cover || 'https://bu.dusays.com/2026/03/24/69c24230a5ff8.jpg',
+            src: song.url,
+            lrcUrl: null,
+            lyrics: song.lrc ? parseLrc(song.lrc) : []
+          }));
+
+        const mergedPlaylist = [...cloudPlaylist, ...localPlaylist];
+
         if (isMounted) {
           if (mergedPlaylist.length > 0) setPlaylist(mergedPlaylist);
           else setCurrentLyric("云端链路受阻");
@@ -109,7 +124,7 @@ export function MusicProvider({ children }: { children: ReactNode }) {
       }
     };
 
-    if (siteConfig.cloudMusicIds?.length > 0) fetchMusicData();
+    if (siteConfig.cloudMusicIds?.length > 0 || siteConfig.localMusic?.length > 0) fetchMusicData();
     else setIsLoading(false);
 
     return () => { isMounted = false; };

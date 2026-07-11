@@ -203,15 +203,21 @@ function SettingsContent() {
     }
   };
 
-  // 本地音乐相关函数
+  // 音乐直链相关函数
   const addLocalMusic = () => {
     const newSong = formData.newLocalMusic;
-    if (!newSong.url) {
-      showToast("请填写音频文件名", "warning");
-      return;
-    }
     if (!newSong.name) {
       showToast("请填写歌曲名", "warning");
+      return;
+    }
+
+    // 如果没有填写URL但有网易云ID，自动生成外链
+    let songUrl = newSong.url;
+    if (!songUrl && newSong.neteaseId) {
+      songUrl = `https://music.163.com/song/media/outer/url?id=${newSong.neteaseId}.mp3`;
+    }
+    if (!songUrl) {
+      showToast("请填写音频链接或网易云歌曲ID", "warning");
       return;
     }
 
@@ -219,15 +225,15 @@ function SettingsContent() {
       id: `local_${Date.now()}`,
       name: newSong.name,
       artist: newSong.artist || '未知歌手',
-      url: `/music/${newSong.url}`,
-      cover: newSong.cover ? (newSong.cover.startsWith('http') ? newSong.cover : `/music/${newSong.cover}`) : '',
+      url: songUrl,
+      cover: newSong.cover || '',
       lrc: newSong.lrc || '',
       neteaseId: newSong.neteaseId || ''
     };
 
     handleUpdate('localMusic', [...formData.localMusic, songToAdd]);
     handleUpdate('newLocalMusic', { name: '', artist: '', url: '', cover: '', neteaseId: '', lrc: '' });
-    showToast("✅ 成功添加本地音乐！", "success");
+    showToast("✅ 成功添加音乐直链！", "success");
   };
 
   const removeLocalMusic = (index: number) => {

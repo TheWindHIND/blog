@@ -18,66 +18,7 @@ import json
 import subprocess
 import traceback
 import atexit
-import ctypes
 from cms_core.main import app
-
-
-# ══════════════════════════════════════════════════
-# [临时] 内存看门狗：防止 node.exe 吃满内存导致死机
-# ══════════════════════════════════════════════════
-
-MEMORY_WARN_PERCENT = 75     # 内存使用超过 75% 时发出警告
-MEMORY_KILL_PERCENT = 85     # 内存使用超过 85% 时强制杀掉 node 进程
-MEMORY_CHECK_INTERVAL = 3    # 每 3 秒检查一次
-
-def get_memory_usage_percent():
-    """获取系统内存使用百分比（Windows）"""
-    try:
-        class MEMORYSTATUSEX(ctypes.Structure):
-            _fields_ = [
-                ("dwLength", ctypes.c_ulong),
-                ("dwMemoryLoad", ctypes.c_ulong),
-                ("ullTotalPhys", ctypes.c_ulonglong),
-                ("ullAvailPhys", ctypes.c_ulonglong),
-                ("ullTotalPageFile", ctypes.c_ulonglong),
-                ("ullAvailPageFile", ctypes.c_ulonglong),
-                ("ullTotalVirtual", ctypes.c_ulonglong),
-                ("ullAvailVirtual", ctypes.c_ulonglong),
-                ("ullAvailExtendedVirtual", ctypes.c_ulonglong),
-            ]
-        mem = MEMORYSTATUSEX()
-        mem.dwLength = ctypes.sizeof(MEMORYSTATUSEX)
-        ctypes.windll.kernel32.GlobalMemoryStatusEx(ctypes.byref(mem))
-        return mem.dwMemoryLoad
-    except Exception:
-        return 0
-
-def kill_node_processes():
-    """杀掉所有 node.exe 进程"""
-    try:
-        subprocess.run(
-            ['taskkill', '/IM', 'node.exe', '/F', '/T'],
-            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
-        )
-        print("⚠️ [内存看门狗] 已强制终止所有 node.exe 进程！")
-    except Exception:
-        pass
-
-def memory_watchdog():
-    """后台线程：持续监控内存，超限则杀进程"""
-    warned = False
-    while True:
-        time.sleep(MEMORY_CHECK_INTERVAL)
-        usage = get_memory_usage_percent()
-        if usage >= MEMORY_KILL_PERCENT:
-            print(f"🚨 [内存看门狗] 内存使用 {usage}% 超过阈值 {MEMORY_KILL_PERCENT}%，正在终止 node.exe...")
-            kill_node_processes()
-            warned = False
-        elif usage >= MEMORY_WARN_PERCENT and not warned:
-            print(f"⚠️ [内存看门狗] 内存使用 {usage}%，接近危险阈值 {MEMORY_KILL_PERCENT}%")
-            warned = True
-        elif usage < MEMORY_WARN_PERCENT:
-            warned = False
 
 frontend_process = None
 WINDOW_CONFIG_FILE = os.path.join(EXE_DIR, 'window_config.json')
@@ -308,8 +249,6 @@ if __name__ == "__main__":
 
     env_vars = os.environ.copy()
     env_vars["PORT"] = str(frontend_port)
-    # 限制单个 Node.js 进程的最大堆内存为 2GB，防止吃满内存
-    env_vars["NODE_OPTIONS"] = "--max-old-space-size=2048"
 
     standalone_dir = os.path.join(BASE_DIR, '.next', 'standalone')
     server_js = os.path.join(standalone_dir, 'server.js')
@@ -345,8 +284,6 @@ if __name__ == "__main__":
 
     write_port_config(backend_port)
     threading.Thread(target=run_api, args=(backend_port,), daemon=True).start()
-    # [临时] 启动内存看门狗
-    threading.Thread(target=memory_watchdog, daemon=True).start()
 
     if not wait_for_port(backend_port) or not wait_for_port(frontend_port):
         print(">>> ❌ 前后端启动失败！")

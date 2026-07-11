@@ -47,7 +47,7 @@ export default function MusicSection({
               : 'bg-white/50 dark:bg-slate-800/50 text-slate-600 dark:text-slate-300 hover:bg-white/80'
           }`}
         >
-          📁 本地音乐
+          🔗 音乐直链
         </button>
       </div>
 
@@ -176,25 +176,25 @@ export default function MusicSection({
           >
             <div className="space-y-3">
               <p className="text-[10px] font-black text-slate-400 uppercase ml-1 mb-4">
-                本地音乐列表 ({formData.localMusic.length})
+                音乐直链列表 ({formData.localMusic.length})
               </p>
               <div className="max-h-[400px] overflow-y-auto pr-2 space-y-2 custom-scrollbar">
                 {formData.localMusic.length === 0 ? (
                   <div className="text-center py-10 text-slate-400 text-sm">
-                    还没有本地音乐，添加一首试试吧~
+                    还没有音乐直链，输入网易云ID添加一首吧~
                   </div>
                 ) : (
                   formData.localMusic.map((song: any, index: number) => (
-                    <div 
-                      key={song.id || index} 
+                    <div
+                      key={song.id || index}
                       className="flex justify-between items-center p-3 bg-white/40 dark:bg-slate-800/40 rounded-2xl border border-white/20 group"
                     >
                       <div className="flex items-center gap-3">
                         {song.cover ? (
-                          <img 
-                            src={song.cover} 
-                            alt="cover" 
-                            className="w-10 h-10 rounded-lg object-cover shadow-sm" 
+                          <img
+                            src={song.cover}
+                            alt="cover"
+                            className="w-10 h-10 rounded-lg object-cover shadow-sm"
                           />
                         ) : (
                           <div className="w-10 h-10 rounded-lg bg-emerald-200 dark:bg-emerald-700 flex items-center justify-center text-xs">
@@ -209,12 +209,12 @@ export default function MusicSection({
                             {song.artist || '未知歌手'}
                           </span>
                           <span className="text-[10px] font-mono text-emerald-500 mt-0.5">
-                            本地音乐
+                            {song.neteaseId ? `#${song.neteaseId}` : '直链'}
                           </span>
                         </div>
                       </div>
-                      <button 
-                        onClick={() => removeLocalMusic(index)} 
+                      <button
+                        onClick={() => removeLocalMusic(index)}
                         className="w-8 h-8 shrink-0 rounded-lg bg-red-500/10 text-red-500 opacity-0 group-hover:opacity-100 transition-all hover:bg-red-500 hover:text-white flex items-center justify-center"
                       >
                         ✕
@@ -225,128 +225,94 @@ export default function MusicSection({
               </div>
             </div>
             <div className="bg-slate-100/50 dark:bg-slate-800/50 rounded-3xl p-6 space-y-4">
-              <p className="text-[10px] font-black text-slate-400 uppercase">添加本地音乐</p>
-              
+              <p className="text-[10px] font-black text-slate-400 uppercase">添加音乐直链</p>
+
               <div className="space-y-3">
                 <div>
-                  <label className="text-xs text-slate-500 mb-1 block">网易云歌曲ID（可选，自动填充信息）</label>
+                  <label className="text-xs text-slate-500 mb-1 block">网易云歌曲ID *</label>
                   <div className="flex gap-2">
-                    <input 
-                      type="text" 
-                      placeholder="输入网易云歌曲ID" 
-                      value={formData.newLocalMusic.neteaseId} 
-                      onChange={e => handleUpdate('newLocalMusic', { ...formData.newLocalMusic, neteaseId: e.target.value })} 
-                      className="flex-1 bg-white dark:bg-slate-900 border-none rounded-xl px-3 py-2 text-sm outline-none shadow-sm" 
+                    <input
+                      type="text"
+                      placeholder="输入网易云歌曲ID，自动获取信息"
+                      value={formData.newLocalMusic.neteaseId}
+                      onChange={e => handleUpdate('newLocalMusic', { ...formData.newLocalMusic, neteaseId: e.target.value })}
+                      className="flex-1 bg-white dark:bg-slate-900 border-none rounded-xl px-3 py-2 text-sm outline-none shadow-sm"
                     />
-                    <button 
+                    <button
                       onClick={fetchLocalMusicInfo}
                       className="px-4 py-2 bg-emerald-500 text-white rounded-xl text-xs font-black shadow-lg shadow-emerald-500/20 hover:bg-emerald-600 transition-colors"
                     >
                       自动填充
                     </button>
                   </div>
+                  <p className="text-[10px] text-slate-400 mt-1">
+                    输入ID后点击自动填充，将自动获取歌曲名、歌手、封面和歌词
+                  </p>
                 </div>
 
                 <div>
                   <label className="text-xs text-slate-500 mb-1 block">歌曲名 *</label>
-                  <input 
-                    type="text" 
-                    placeholder="输入歌曲名" 
-                    value={formData.newLocalMusic.name} 
-                    onChange={e => handleUpdate('newLocalMusic', { ...formData.newLocalMusic, name: e.target.value })} 
-                    className="w-full bg-white dark:bg-slate-900 border-none rounded-xl px-3 py-2 text-sm outline-none shadow-sm" 
+                  <input
+                    type="text"
+                    placeholder="输入歌曲名（自动填充后可修改）"
+                    value={formData.newLocalMusic.name}
+                    onChange={e => handleUpdate('newLocalMusic', { ...formData.newLocalMusic, name: e.target.value })}
+                    className="w-full bg-white dark:bg-slate-900 border-none rounded-xl px-3 py-2 text-sm outline-none shadow-sm"
                   />
                 </div>
 
                 <div>
                   <label className="text-xs text-slate-500 mb-1 block">歌手</label>
-                  <input 
-                    type="text" 
-                    placeholder="输入歌手名" 
-                    value={formData.newLocalMusic.artist} 
-                    onChange={e => handleUpdate('newLocalMusic', { ...formData.newLocalMusic, artist: e.target.value })} 
-                    className="w-full bg-white dark:bg-slate-900 border-none rounded-xl px-3 py-2 text-sm outline-none shadow-sm" 
+                  <input
+                    type="text"
+                    placeholder="输入歌手名（自动填充后可修改）"
+                    value={formData.newLocalMusic.artist}
+                    onChange={e => handleUpdate('newLocalMusic', { ...formData.newLocalMusic, artist: e.target.value })}
+                    className="w-full bg-white dark:bg-slate-900 border-none rounded-xl px-3 py-2 text-sm outline-none shadow-sm"
                   />
                 </div>
 
                 <div>
-                  <label className="text-xs text-slate-500 mb-1 block">音频文件名 *</label>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-slate-400">/music/</span>
-                    <input 
-                      type="text" 
-                      placeholder="song.mp3" 
-                      value={formData.newLocalMusic.url} 
-                      onChange={e => handleUpdate('newLocalMusic', { ...formData.newLocalMusic, url: e.target.value })} 
-                      className="flex-1 bg-white dark:bg-slate-900 border-none rounded-xl px-3 py-2 text-sm outline-none shadow-sm" 
-                    />
-                    <button 
-                      onClick={async () => {
-                        try {
-                          // @ts-ignore
-                          if (window.pywebview && window.pywebview.api) {
-                            // @ts-ignore
-                            const result = await window.pywebview.api.select_audio_file();
-                            if (result.success) {
-                              handleUpdate('newLocalMusic', { ...formData.newLocalMusic, url: result.filename });
-                            }
-                          } else {
-                            alert('请在桌面应用中使用此功能');
-                          }
-                        } catch (e) {
-                          console.error('选择音频文件失败:', e);
-                        }
-                      }}
-                      className="px-3 py-2 bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 rounded-xl text-xs font-bold hover:bg-emerald-500 hover:text-white transition-colors"
-                    >
-                      📁 选择
-                    </button>
-                  </div>
+                  <label className="text-xs text-slate-500 mb-1 block">音频链接（可选，留空则自动生成）</label>
+                  <input
+                    type="text"
+                    placeholder="https://music.163.com/song/media/outer/url?id=xxx.mp3"
+                    value={formData.newLocalMusic.url}
+                    onChange={e => handleUpdate('newLocalMusic', { ...formData.newLocalMusic, url: e.target.value })}
+                    className="w-full bg-white dark:bg-slate-900 border-none rounded-xl px-3 py-2 text-sm outline-none shadow-sm"
+                  />
                   <p className="text-[10px] text-slate-400 mt-1">
-                    点击选择按钮，从本地选择 MP3 文件
+                    填写网易云ID后会自动生成外链，也可以手动粘贴其他直链
                   </p>
                 </div>
 
                 <div>
                   <label className="text-xs text-slate-500 mb-1 block">
-                    封面图片（可选）
-                    <span className="text-emerald-500 ml-1">优先从网易云获取</span>
+                    封面图片URL（可选）
+                    <span className="text-emerald-500 ml-1">自动从网易云获取</span>
                   </label>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-slate-400">/music/</span>
-                    <input 
-                      type="text" 
-                      placeholder="cover.jpg" 
-                      value={formData.newLocalMusic.cover} 
-                      onChange={e => handleUpdate('newLocalMusic', { ...formData.newLocalMusic, cover: e.target.value })} 
-                      className="flex-1 bg-white dark:bg-slate-900 border-none rounded-xl px-3 py-2 text-sm outline-none shadow-sm" 
-                      disabled={formData.newLocalMusic.neteaseId && formData.newLocalMusic.cover?.startsWith('http')}
-                    />
-                    <button 
-                      onClick={async () => {
-                        try {
-                          // @ts-ignore
-                          if (window.pywebview && window.pywebview.api) {
-                            // @ts-ignore
-                            const result = await window.pywebview.api.select_cover_file();
-                            if (result.success) {
-                              handleUpdate('newLocalMusic', { ...formData.newLocalMusic, cover: result.filename });
-                            }
-                          } else {
-                            alert('请在桌面应用中使用此功能');
-                          }
-                        } catch (e) {
-                          console.error('选择封面文件失败:', e);
-                        }
-                      }}
-                      className="px-3 py-2 bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 rounded-xl text-xs font-bold hover:bg-emerald-500 hover:text-white transition-colors"
-                    >
-                      🖼️ 选择
-                    </button>
-                  </div>
+                  <input
+                    type="text"
+                    placeholder="https://p1.music.126.net/xxx.jpg"
+                    value={formData.newLocalMusic.cover}
+                    onChange={e => handleUpdate('newLocalMusic', { ...formData.newLocalMusic, cover: e.target.value })}
+                    className="w-full bg-white dark:bg-slate-900 border-none rounded-xl px-3 py-2 text-sm outline-none shadow-sm"
+                    disabled={formData.newLocalMusic.neteaseId && formData.newLocalMusic.cover?.startsWith('http')}
+                  />
                   <p className="text-[10px] text-slate-400 mt-1">
-                    填写网易云ID后会自动获取封面，也可以手动选择本地图片
+                    填写网易云ID后会自动获取封面，也可以手动粘贴图片URL
                   </p>
+                </div>
+
+                <div>
+                  <label className="text-xs text-slate-500 mb-1 block">LRC歌词（可选，自动获取）</label>
+                  <textarea
+                    placeholder="点击自动填充后将自动获取LRC歌词..."
+                    value={formData.newLocalMusic.lrc}
+                    onChange={e => handleUpdate('newLocalMusic', { ...formData.newLocalMusic, lrc: e.target.value })}
+                    rows={3}
+                    className="w-full bg-white dark:bg-slate-900 border-none rounded-xl px-3 py-2 text-sm outline-none shadow-sm resize-none"
+                  />
                 </div>
               </div>
 
@@ -354,15 +320,15 @@ export default function MusicSection({
                 onClick={addLocalMusic}
                 className="w-full py-3 bg-emerald-500 text-white rounded-xl text-sm font-black shadow-lg shadow-emerald-500/20 active:scale-95 transition-all"
               >
-                ➕ 添加本地音乐
+                ➕ 添加音乐直链
               </button>
 
               <div className="border-t border-slate-200 dark:border-slate-700 pt-4">
                 <button
-                  onClick={() => pushToQueue('本地音乐', 'localMusic', formData.localMusic)}
+                  onClick={() => pushToQueue('音乐直链', 'localMusic', formData.localMusic)}
                   className="w-full py-4 bg-indigo-500 text-white rounded-2xl text-sm font-black shadow-xl active:scale-95 transition-all"
                 >
-                  暂存本地音乐修改
+                  暂存音乐直链修改
                 </button>
               </div>
             </div>
