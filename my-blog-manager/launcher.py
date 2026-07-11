@@ -17,23 +17,144 @@ import socket
 import json
 import subprocess
 import traceback
+import atexit
+import ctypes
 from cms_core.main import app
+
+
+# ══════════════════════════════════════════════════
+# [临时] 内存看门狗：防止 node.exe 吃满内存导致死机
+# ══════════════════════════════════════════════════
+
+MEMORY_WARN_PERCENT = 75     # 内存使用超过 75% 时发出警告
+MEMORY_KILL_PERCENT = 85     # 内存使用超过 85% 时强制杀掉 node 进程
+MEMORY_CHECK_INTERVAL = 3    # 每 3 秒检查一次
+
+def get_memory_usage_percent():
+    """获取系统内存使用百分比（Windows）"""
+    try:
+        class MEMORYSTATUSEX(ctypes.Structure):
+            _fields_ = [
+                ("dwLength", ctypes.c_ulong),
+                ("dwMemoryLoad", ctypes.c_ulong),
+                ("ullTotalPhys", ctypes.c_ulonglong),
+                ("ullAvailPhys", ctypes.c_ulonglong),
+                ("ullTotalPageFile", ctypes.c_ulonglong),
+                ("ullAvailPageFile", ctypes.c_ulonglong),
+                ("ullTotalVirtual", ctypes.c_ulonglong),
+                ("ullAvailVirtual", ctypes.c_ulonglong),
+                ("ullAvailExtendedVirtual", ctypes.c_ulonglong),
+            ]
+        mem = MEMORYSTATUSEX()
+        mem.dwLength = ctypes.sizeof(MEMORYSTATUSEX)
+        ctypes.windll.kernel32.GlobalMemoryStatusEx(ctypes.byref(mem))
+        return mem.dwMemoryLoad
+    except Exception:
+        return 0
+
+def kill_node_processes():
+    """杀掉所有 node.exe 进程"""
+    try:
+        subprocess.run(
+            ['taskkill', '/IM', 'node.exe', '/F', '/T'],
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+        )
+        print("⚠️ [内存看门狗] 已强制终止所有 node.exe 进程！")
+    except Exception:
+        pass
+
+def memory_watchdog():
+    """后台线程：持续监控内存，超限则杀进程"""
+    warned = False
+    while True:
+        time.sleep(MEMORY_CHECK_INTERVAL)
+        usage = get_memory_usage_percent()
+        if usage >= MEMORY_KILL_PERCENT:
+            print(f"🚨 [内存看门狗] 内存使用 {usage}% 超过阈值 {MEMORY_KILL_PERCENT}%，正在终止 node.exe...")
+            kill_node_processes()
+            warned = False
+        elif usage >= MEMORY_WARN_PERCENT and not warned:
+            print(f"⚠️ [内存看门狗] 内存使用 {usage}%，接近危险阈值 {MEMORY_KILL_PERCENT}%")
+            warned = True
+        elif usage < MEMORY_WARN_PERCENT:
+            warned = False
 
 frontend_process = None
 WINDOW_CONFIG_FILE = os.path.join(EXE_DIR, 'window_config.json')
+LOCK_FILE = os.path.join(EXE_DIR, '.launcher.lock')
+
+
+# ══════════════════════════════════════════════════
+# 单实例保护：防止多个 launcher 同时运行
+# ══════════════════════════════════════════════════
+
+def is_process_alive(pid):
+    """检查指定 PID 的进程是否存在"""
+    try:
+        if os.name == 'nt':
+            result = subprocess.run(
+                ['tasklist', '/FI', f'PID eq {pid}', '/NH'],
+                capture_output=True, text=True
+            )
+            return str(pid) in result.stdout
+        else:
+            os.kill(pid, 0)
+            return True
+    except Exception:
+        return False
+
+
+def acquire_lock():
+    """尝试获取单实例锁，若已有实例在运行则返回 False"""
+    if os.path.exists(LOCK_FILE):
+        try:
+            with open(LOCK_FILE, 'r') as f:
+                lock_data = json.load(f)
+            old_pid = lock_data.get('pid')
+            if old_pid and is_process_alive(old_pid):
+                print(f"❌ 检测到另一个控制台正在运行 (PID: {old_pid})")
+                print("   请先关闭已打开的控制台，或手动删除 .launcher.lock 文件")
+                return False
+            else:
+                os.remove(LOCK_FILE)
+        except Exception:
+            try:
+                os.remove(LOCK_FILE)
+            except Exception:
+                pass
+
+    with open(LOCK_FILE, 'w') as f:
+        json.dump({'pid': os.getpid()}, f)
+    return True
+
+
+def release_lock():
+    """清理锁文件"""
+    try:
+        if os.path.exists(LOCK_FILE):
+            os.remove(LOCK_FILE)
+    except Exception:
+        pass
+
+
+atexit.register(release_lock)
 
 def release_port(port):
+    """释放指定端口上的所有 LISTENING 进程（精确匹配端口号）"""
     try:
-        command = f'netstat -ano | findstr :{port}'
+        # 用空格限定端口边界，避免 :8080 误匹配 :80800
+        command = f'netstat -ano | findstr ":{port} "'
         result = subprocess.check_output(command, shell=True).decode()
-        lines = result.strip().split('\n')
-        for line in lines:
+        for line in result.strip().split('\n'):
             parts = line.strip().split()
             if len(parts) >= 5 and parts[3] == 'LISTENING':
                 pid = parts[-1]
-                subprocess.run(f'taskkill /PID {pid} /F /T', shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                subprocess.run(
+                    ['taskkill', '/PID', pid, '/F', '/T'],
+                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+                )
                 time.sleep(0.5)
-    except:
+    except Exception:
         pass
 
 def load_window_size():
@@ -156,10 +277,21 @@ def run_api(port):
         traceback.print_exc()
 
 def on_closed():
-    if frontend_process:
-        subprocess.run(f"taskkill /F /T /PID {frontend_process.pid}", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    release_port(frontend_port)
-    release_port(backend_port)
+    """窗口关闭时清理所有子进程和资源"""
+    try:
+        if frontend_process:
+            subprocess.run(
+                ['taskkill', '/F', '/T', '/PID', str(frontend_process.pid)],
+                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+            )
+    except Exception:
+        pass
+    try:
+        release_port(frontend_port)
+        release_port(backend_port)
+    except Exception:
+        pass
+    release_lock()
     os._exit(0)
 
 def on_shown():
@@ -167,28 +299,54 @@ def on_shown():
     webview.windows[0].resize(int(win_size["width"]), int(win_size["height"]))
 
 if __name__ == "__main__":
+    # ═══ 单实例保护 ═══
+    if not acquire_lock():
+        sys.exit(1)
+
     frontend_port = get_free_port()
     backend_port = get_free_port()
 
     env_vars = os.environ.copy()
     env_vars["PORT"] = str(frontend_port)
+    # 限制单个 Node.js 进程的最大堆内存为 2GB，防止吃满内存
+    env_vars["NODE_OPTIONS"] = "--max-old-space-size=2048"
 
     standalone_dir = os.path.join(BASE_DIR, '.next', 'standalone')
     server_js = os.path.join(standalone_dir, 'server.js')
 
-    # 🌟 核心自适应逻辑：判断是“打包运行”还是“开发运行”
+    # 🌟 核心自适应逻辑：判断是"打包运行"还是"开发运行"
+    # 使用 CREATE_NEW_PROCESS_GROUP 便于整组清理，去掉 shell=True 避免多余 cmd.exe
+    creation_flags = subprocess.CREATE_NEW_PROCESS_GROUP if os.name == 'nt' else 0
+
     if os.path.exists(server_js):
         print("🚀 [生产模式] 使用 127.0.0.1 强制同步...")
         env_vars["HOSTNAME"] = "127.0.0.1"
-        frontend_process = subprocess.Popen(["node", "server.js"], cwd=standalone_dir, env=env_vars, shell=True)
+        # 确保 static 资源已复制到 standalone 目录
+        static_src = os.path.join(BASE_DIR, '.next', 'static')
+        static_dst = os.path.join(standalone_dir, '.next', 'static')
+        if os.path.exists(static_src) and not os.path.exists(static_dst):
+            import shutil
+            shutil.copytree(static_src, static_dst)
+            print("📦 已自动复制静态资源到 standalone 目录")
+        # node.exe 是真正的可执行文件，不需要 shell
+        frontend_process = subprocess.Popen(
+            ["node", "server.js"], cwd=standalone_dir, env=env_vars,
+            creationflags=creation_flags
+        )
         window_url = f"http://127.0.0.1:{frontend_port}"
     else:
         print("🛠️ [开发模式] 使用 localhost 保持兼容...")
-        frontend_process = subprocess.Popen("npm run dev", shell=True, cwd=BASE_DIR, env=env_vars)
+        # npm/npx 在 Windows 上是 .cmd 脚本，必须通过 shell 执行
+        frontend_process = subprocess.Popen(
+            "npm run dev", shell=True, cwd=BASE_DIR, env=env_vars,
+            creationflags=creation_flags
+        )
         window_url = f"http://localhost:{frontend_port}"
 
     write_port_config(backend_port)
     threading.Thread(target=run_api, args=(backend_port,), daemon=True).start()
+    # [临时] 启动内存看门狗
+    threading.Thread(target=memory_watchdog, daemon=True).start()
 
     if not wait_for_port(backend_port) or not wait_for_port(frontend_port):
         print(">>> ❌ 前后端启动失败！")
@@ -209,6 +367,8 @@ if __name__ == "__main__":
     window.events.closed += on_closed
 
     try:
-        webview.start(debug=True)
+        webview.start(debug=False)
     except KeyboardInterrupt:
+        pass
+    finally:
         on_closed()

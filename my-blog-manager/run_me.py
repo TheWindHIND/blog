@@ -56,6 +56,26 @@ if __name__ == "__main__":
 
     # 先查前端，再查后端
     if check_node_environment() and check_python_environment():
+        # 单实例保护：检查 launcher.py 是否已在运行
+        lock_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), '.launcher.lock')
+        if os.path.exists(lock_file):
+            try:
+                import json
+                with open(lock_file, 'r') as f:
+                    lock_data = json.load(f)
+                pid = lock_data.get('pid')
+                if pid:
+                    result = subprocess.run(
+                        ['tasklist', '/FI', f'PID eq {pid}', '/NH'],
+                        capture_output=True, text=True
+                    )
+                    if str(pid) in result.stdout:
+                        print("\n❌ 控制台已在运行中，请勿重复启动！")
+                        input("按回车键退出...")
+                        sys.exit(0)
+            except Exception:
+                pass
+
         print("\n🚀 所有环境准备就绪，正在点火启动...")
         # 启动 launcher.py
         subprocess.Popen([sys.executable, "launcher.py"],
