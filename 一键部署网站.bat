@@ -192,20 +192,36 @@ if not exist ".git" (
 git add .
 git commit -m "部署更新：%date:~0,4%-%date:~5,2%-%date:~8,2% %time:~0,2%:%time:~3,2%" 2>nul
 
-:: 设置远程仓库地址
+:: 设置远程仓库地址（优先 SSH，失败则用 HTTPS）
 git remote get-url origin >nul 2>nul
 if %errorlevel% neq 0 (
-    git remote add origin https://github.com/TheWindHIND/blog.git
+    git remote add origin git@github.com:TheWindHIND/blog.git
 )
-git branch -M gh-pages
-git push -u origin gh-pages --force
 
+:: 确保 GitHub 在 known_hosts 中
+ssh-keyscan github.com >> "%USERPROFILE%\.ssh\known_hosts" 2>nul
+
+:: 尝试推送，如果失败则给出详细错误原因
+git branch -M gh-pages
+git push -u origin gh-pages --force 2>nul
 if %errorlevel% equ 0 (
     echo.
     echo [OK] GitHub Pages 部署成功！
 ) else (
     echo.
-    echo [警告] GitHub Pages 部署可能失败，请检查网络或权限
+    echo ========================================
+    echo    [错误] GitHub Pages 部署失败！
+    echo ========================================
+    echo.
+    echo 可能的原因：
+    echo   1. 网络无法连接到 GitHub（请检查 VPN/代理是否开启）
+    echo   2. SSH 密钥未配置或未添加到 GitHub
+    echo   3. 仓库权限不足
+    echo.
+    echo 诊断命令（请在终端手动执行）：
+    echo   ssh -T git@github.com          测试 SSH 连接
+    echo   git push -u origin gh-pages --force  手动推送
+    echo.
 )
 
 cd ..
@@ -218,16 +234,25 @@ echo.
 echo [7/8] 正在推送源码到 GitHub...
 echo.
 
+:: 确保 main 仓库也使用 SSH
+git remote get-url origin >nul 2>nul
+if %errorlevel% equ 0 (
+    git remote set-url origin git@github.com:TheWindHIND/blog.git 2>nul
+)
+
 git add -A
 git commit -m "更新：%date:~0,4%-%date:~5,2%-%date:~8,2% %time:~0,2%:%time:~3,2%" 2>nul
-git push origin main
+git push origin main 2>nul
 
 if %errorlevel% equ 0 (
     echo.
     echo [OK] 源码推送成功！
 ) else (
     echo.
-    echo [警告] 源码推送可能失败，请检查 Git 配置
+    echo [警告] 源码推送失败，原因：
+    echo   - 网络无法连接到 GitHub
+    echo   - 请检查 VPN/代理是否开启
+    echo   - 或手动执行: git push origin main
 )
 
 :: ========================================
