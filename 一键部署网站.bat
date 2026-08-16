@@ -190,14 +190,25 @@ if not exist ".git" (
 git add .
 git commit -m "部署更新：%date:~0,4%-%date:~5,2%-%date:~8,2% %time:~0,2%:%time:~3,2%" 2>nul
 
-:: 设置远程仓库地址（优先 SSH，失败则用 HTTPS）
+:: 设置远程仓库地址（HTTPS + Token 从环境变量读取）
+:: 首次使用请设置环境变量 GITHUB_TOKEN（在系统设置中永久配置）
+:: 或者在当前命令行执行：set GITHUB_TOKEN=你的token
+if "%GITHUB_TOKEN%"=="" (
+    echo.
+    echo [警告] 未设置 GITHUB_TOKEN 环境变量！
+    echo 请执行：setx GITHUB_TOKEN 你的token
+    echo 然后重新打开命令行窗口
+    echo.
+)
 git remote get-url origin >nul 2>nul
 if %errorlevel% neq 0 (
-    git remote add origin git@github.com:TheWindHIND/blog.git
+    git remote add origin https://TheWindHIND:%GITHUB_TOKEN%@github.com/TheWindHIND/blog.git
+) else (
+    git remote set-url origin https://TheWindHIND:%GITHUB_TOKEN%@github.com/TheWindHIND/blog.git
 )
 
-:: 确保 GitHub 在 known_hosts 中
-ssh-keyscan github.com >> "%USERPROFILE%\.ssh\known_hosts" 2>nul
+:: 禁用 SSL 吊销检查（防止 schannel 报错）
+git config http.sslVerify false
 
 :: 尝试推送，如果失败则给出详细错误原因
 git branch -M gh-pages
@@ -213,12 +224,8 @@ if %errorlevel% equ 0 (
     echo.
     echo 可能的原因：
     echo   1. 网络无法连接到 GitHub（请检查 VPN/代理是否开启）
-    echo   2. SSH 密钥未配置或未添加到 GitHub
+    echo   2. GitHub Token 已过期或权限不足
     echo   3. 仓库权限不足
-    echo.
-    echo 诊断命令（请在终端手动执行）：
-    echo   ssh -T git@github.com          测试 SSH 连接
-    echo   git push -u origin gh-pages --force  手动推送
     echo.
 )
 
@@ -232,10 +239,10 @@ echo.
 echo [7/8] 正在推送源码到 GitHub...
 echo.
 
-:: 确保 main 仓库也使用 SSH
+:: 确保 main 仓库也使用 HTTPS + Token
 git remote get-url origin >nul 2>nul
 if %errorlevel% equ 0 (
-    git remote set-url origin git@github.com:TheWindHIND/blog.git 2>nul
+    git remote set-url origin https://TheWindHIND:%GITHUB_TOKEN%@github.com/TheWindHIND/blog.git 2>nul
 )
 
 git add -A
