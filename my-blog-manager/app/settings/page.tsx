@@ -17,8 +17,23 @@ import DisplaySection from '../../components/settings/DisplaySection';
 import CommentSection from '../../components/settings/CommentSection';
 import DanmakuSection from '../../components/settings/DanmakuSection';
 import FooterSection from '../../components/settings/FooterSection';
-// 👇 🌟 引入刚写的 AI 配置组件
-import AICatSection from '../../components/settings/AICatSection';
+// 🌟 桌宠预设语句配置（原 AI 煤球配置，AI 对话功能已移除）
+import DesktopPetSection from '../../components/settings/DesktopPetSection';
+
+// 🌟 性能优化：api_port 会话级缓存，避免每次查询都重新拉 backend_config.json
+let _cachedApiBase: string | null = null;
+async function getApiBase(): Promise<string | null> {
+  if (_cachedApiBase) return _cachedApiBase;
+  try {
+    const configRes = await fetch(`/backend_config.json?t=${Date.now()}`);
+    const configData = await configRes.json();
+    if (configData.api_port) {
+      _cachedApiBase = `http://127.0.0.1:${configData.api_port}`;
+      return _cachedApiBase;
+    }
+  } catch { /* fallthrough */ }
+  return null;
+}
 
 function SettingsContent() {
   const { operations, addOperation } = useOperations();
@@ -52,13 +67,6 @@ function SettingsContent() {
     buildDate: siteConfig.buildDate || "2026-03-23T00:00:00",
     icpConfig: siteConfig.icpConfig || { name: "", link: "" },
     footerBadges: [...(siteConfig.footerBadges || [])],
-    // 👇 🌟 初始化小猫 AI 配置数据
-    geminiConfig: siteConfig.geminiConfig || {
-      modelId: 'gemini-2.5-flash-lite',
-      systemPrompt: '',
-      maxOutputTokens: 150,
-      temperature: 0.85
-    },
     // 👇 🌟 初始化桌宠配置
     desktopPetConfig: siteConfig.desktopPetConfig || {
       petName: "银狼",
@@ -74,6 +82,7 @@ function SettingsContent() {
 
   const [queryLoading, setQueryLoading] = useState(false);
   const [queryResult, setQueryResult] = useState<any>(null);
+  const [fillLoading, setFillLoading] = useState(false);
   const [musicDetails, setMusicDetails] = useState<Record<string, any>>({});
 
   useEffect(() => {
@@ -97,8 +106,6 @@ function SettingsContent() {
               buildDate: data.data.buildDate || prev.buildDate,
               icpConfig: data.data.icpConfig || prev.icpConfig,
               footerBadges: data.data.footerBadges ? [...data.data.footerBadges] : prev.footerBadges,
-              // 👇 🌟 合并后端发来的小猫配置
-              geminiConfig: { ...(prev.geminiConfig || {}), ...(data.data.geminiConfig || {}) },
               // 👇 🌟 合并后端发来的桌宠配置
               desktopPetConfig: { ...(prev.desktopPetConfig || {}), ...(data.data.desktopPetConfig || {}) }
             };
@@ -129,9 +136,9 @@ function SettingsContent() {
 
   const fetchMusicDetail = async (id: string) => {
     try {
-      const configRes = await fetch(`/backend_config.json?t=${Date.now()}`);
-      const configData = await configRes.json();
-      const res = await fetch(`http://127.0.0.1:${configData.api_port}/api/music/query/${id}`, { cache: 'no-store' });
+      const apiBase = await getApiBase();
+      if (!apiBase) return { error: true, id, name: "后端通信通道断开" };
+      const res = await fetch(`${apiBase}/api/music/query/${id}`, { cache: 'no-store' });
       const data = await res.json();
       return data.success ? data.data : { error: true, id, name: "查询失败或无版权" };
     } catch (error) {
@@ -141,9 +148,9 @@ function SettingsContent() {
 
   const fetchMusicLyric = async (id: string) => {
     try {
-      const configRes = await fetch(`/backend_config.json?t=${Date.now()}`);
-      const configData = await configRes.json();
-      const res = await fetch(`http://127.0.0.1:${configData.api_port}/api/music/lyric/${id}`, { cache: 'no-store' });
+      const apiBase = await getApiBase();
+      if (!apiBase) return '';
+      const res = await fetch(`${apiBase}/api/music/lyric/${id}`, { cache: 'no-store' });
       const data = await res.json();
       return data.success ? data.data.lrc : '';
     } catch (error) {
@@ -259,20 +266,48 @@ function SettingsContent() {
       return;
     }
 
-    const info = await fetchMusicDetail(neteaseId);
-    const lyric = await fetchMusicLyric(neteaseId);
-    
-    if (info && !info.error) {
-      handleUpdate('newLocalMusic', {
-        ...formData.newLocalMusic,
-        name: info.name,
-        artist: info.artist || info.author || '',
-        cover: info.cover || info.pic || '',
-        lrc: lyric || ''
-      });
-      showToast("✅ 已自动填充歌曲信息和歌词！", "success");
-    } else {
-      showToast("获取歌曲信息失败，请手动填写", "error");
+    setFillLoading(true);
+    try {
+      // 🌟 性能优化：改用后端 /fill 聚合端点 —— 详情+歌词服务端并发获取，
+      // 单次 HTTP 往返替代原先「查详情→再查歌词」的串行两次往返
+      const apiBase = await getApiBase();
+      const res = apiBase
+        ? await fetch(`${apiBase}/api/music/fill/${neteaseId}`, { cache: 'no-store' })
+        : null;
+      const data = res ? await res.json() : null;
+      const info = data?.success ? data.data.detail : null;
+      const lyric = data?.success ? (data.data.lrc || '') : '';
+
+      if (info) {
+        handleUpdate('newLocalMusic', {
+          ...formData.newLocalMusic,
+          name: info.name,
+          artist: info.artist || info.author || '',
+          cover: info.cover || info.pic || '',
+          lrc: lyric
+        });
+        showToast("✅ 已自动填充歌曲信息和歌词！", "success");
+      } else {
+        // 兜底：聚合端点不可用时退回旧链路（并行执行）
+        const [fallbackInfo, fallbackLyric] = await Promise.all([
+          fetchMusicDetail(neteaseId),
+          fetchMusicLyric(neteaseId)
+        ]);
+        if (fallbackInfo && !fallbackInfo.error) {
+          handleUpdate('newLocalMusic', {
+            ...formData.newLocalMusic,
+            name: fallbackInfo.name,
+            artist: fallbackInfo.artist || fallbackInfo.author || '',
+            cover: fallbackInfo.cover || fallbackInfo.pic || '',
+            lrc: fallbackLyric || ''
+          });
+          showToast("✅ 已自动填充歌曲信息和歌词！", "success");
+        } else {
+          showToast("获取歌曲信息失败，请手动填写", "error");
+        }
+      }
+    } finally {
+      setFillLoading(false);
     }
   };
 
@@ -281,11 +316,9 @@ function SettingsContent() {
     //（可能含其他模块的旧快照数据）在执行队列时整体覆盖磁盘配置
     const payload = key ? { [key]: value } : formData;
     addOperation({
-      id: Date.now().toString(),
       type: 'CONFIG',
       label: `配置暂存：${label}`,
       description: `修改了系统的 ${label}，等待同步至 my-blog`,
-      timestamp: new Date().toLocaleTimeString().slice(0, 5),
       payload: payload,
       key: key,
       value: value
@@ -303,7 +336,7 @@ function SettingsContent() {
     { id: 'footer', name: '首页底部设置', icon: '🧩' },
     { id: 'danmaku', name: '全站弹幕设置', icon: '⚡' },
     { id: 'comment', name: '评论系统配置', icon: '💬' },
-    { id: 'aicat', name: 'AI 煤球配置', icon: '🐾' },
+    { id: 'aicat', name: '预设语句配置', icon: '🐾' },
     { id: 'repo', name: '项目仓库设置', icon: '🚀' },
   ];
 
@@ -338,13 +371,13 @@ function SettingsContent() {
               {activeTab === 'profile' && <ProfileSection key="profile" formData={formData} handleUpdate={handleUpdate} pushToQueue={pushToQueue} />}
               {activeTab === 'display' && <DisplaySection key="display" />}
               {activeTab === 'background' && <BackgroundSection key="background" formData={formData} handleUpdate={handleUpdate} pushToQueue={pushToQueue} />}
-              {activeTab === 'music' && <MusicSection key="music" formData={formData} handleUpdate={handleUpdate} pushToQueue={pushToQueue} musicDetails={musicDetails} queryMusic={queryMusic} queryLoading={queryLoading} queryResult={queryResult} confirmAddMusic={confirmAddMusic} removeSong={removeSong} addLocalMusic={addLocalMusic} removeLocalMusic={removeLocalMusic} fetchLocalMusicInfo={fetchLocalMusicInfo} />}
+              {activeTab === 'music' && <MusicSection key="music" formData={formData} handleUpdate={handleUpdate} pushToQueue={pushToQueue} musicDetails={musicDetails} queryMusic={queryMusic} queryLoading={queryLoading} queryResult={queryResult} confirmAddMusic={confirmAddMusic} removeSong={removeSong} addLocalMusic={addLocalMusic} removeLocalMusic={removeLocalMusic} fetchLocalMusicInfo={fetchLocalMusicInfo} fillLoading={fillLoading} />}
               {activeTab === 'gallery' && <GallerySection key="gallery" formData={formData} handleUpdate={handleUpdate} pushToQueue={pushToQueue} />}
               {activeTab === 'footer' && <FooterSection key="footer" formData={formData} handleUpdate={handleUpdate} pushToQueue={pushToQueue} />}
               {activeTab === 'danmaku' && <DanmakuSection key="danmaku" formData={formData} handleUpdate={handleUpdate} pushToQueue={pushToQueue} />}
               {activeTab === 'comment' && <CommentSection key="comment" formData={formData} handleUpdate={handleUpdate} pushToQueue={pushToQueue} />}
-              {/* 👇 🌟 挂载 AI 猫咪面板 */}
-              {activeTab === 'aicat' && <AICatSection key="aicat" formData={formData} handleUpdate={handleUpdate} pushToQueue={pushToQueue} />}
+              {/* 🌟 桌宠预设语句配置面板 */}
+              {activeTab === 'aicat' && <DesktopPetSection key="aicat" formData={formData} handleUpdate={handleUpdate} pushToQueue={pushToQueue} />}
 
               {activeTab === 'repo' && <RepoSection key="repo" />}
             </AnimatePresence>

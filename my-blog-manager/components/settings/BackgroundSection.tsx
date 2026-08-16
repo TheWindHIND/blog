@@ -111,10 +111,27 @@ export default function BackgroundSection({ formData, handleUpdate, pushToQueue 
           <h2 className="text-xl font-black text-slate-800 dark:text-white flex items-center gap-2">🌌 视觉背景配置</h2>
           <p className="text-[10px] font-bold text-slate-400 mt-2 uppercase">管理网站的全局轮播背景图 ({formData.bgImages?.length || 0} 张)</p>
         </div>
-        {/* 👈 修复暂存参数：传入真正的 key 和 value */}
-        <button onClick={() => pushToQueue('视觉背景图', 'bgImages', formData.bgImages)} className="px-6 py-2 bg-indigo-500 text-white rounded-xl text-xs font-black shadow-lg shadow-indigo-500/20 active:scale-95 transition-all">
-          暂存背景修改
-        </button>
+        <div className="flex gap-3 items-end">
+          {/* 切换间隔设置 */}
+          <div className="flex items-center gap-2">
+            <label className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase whitespace-nowrap">切换间隔</label>
+            <input type="number" min={3} max={300} step={1}
+              value={formData.bgInterval ?? 10}
+              onChange={e => {
+                const v = Math.max(3, Math.min(300, parseInt(e.target.value) || 10));
+                handleUpdate('bgInterval', v);
+              }}
+              className="w-16 bg-white dark:bg-slate-900 border border-indigo-200/50 dark:border-indigo-700/50 rounded-xl px-3 py-2 text-xs text-center outline-none font-mono focus:ring-2 focus:ring-indigo-500"
+            />
+            <span className="text-[10px] font-bold text-slate-400">秒</span>
+          </div>
+          <button onClick={() => {
+            pushToQueue('视觉背景图', 'bgImages', formData.bgImages);
+            if (formData.bgInterval) pushToQueue('背景切换间隔', 'bgInterval', formData.bgInterval);
+          }} className="px-6 py-2 bg-indigo-500 text-white rounded-xl text-xs font-black shadow-lg shadow-indigo-500/20 active:scale-95 transition-all">
+            暂存背景修改
+          </button>
+        </div>
       </header>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 relative z-10">

@@ -296,13 +296,14 @@ def update_site_config(payload: Dict[str, Any] = Body(...)):
         "bgImages", "defaultPostCover", "photoWallImage", "cloudMusicIds", "social",
         "counts", "chatterTitle", "chatterDescription", "picBedName", "picBedUrl",
         "picBedToken", "danmakuList", "gitalkConfig", "buildDate", "footerBadges",
-        "icpConfig", "geminiConfig", "localMusic", "desktopPetConfig",
+        "icpConfig", "localMusic", "desktopPetConfig",
         "faviconUrl",
         "navTitle",
         "navSuffix",
         "navAfter",
         "friendLinkApplyFormat",
-        "enableLevelSystem" # 👈 你加的字段在这里，完美！
+        "enableLevelSystem", # 👈 你加的字段在这里，完美！
+        "bgInterval"
     }
 
     try:

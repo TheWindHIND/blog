@@ -14,7 +14,8 @@ export default function MusicSection({
   removeSong,
   addLocalMusic,
   removeLocalMusic,
-  fetchLocalMusicInfo
+  fetchLocalMusicInfo,
+  fillLoading
 }: any) {
   const [activeSubTab, setActiveSubTab] = useState('netease');
 
@@ -240,9 +241,10 @@ export default function MusicSection({
                     />
                     <button
                       onClick={fetchLocalMusicInfo}
-                      className="px-4 py-2 bg-emerald-500 text-white rounded-xl text-xs font-black shadow-lg shadow-emerald-500/20 hover:bg-emerald-600 transition-colors"
+                      disabled={fillLoading}
+                      className="px-4 py-2 bg-emerald-500 text-white rounded-xl text-xs font-black shadow-lg shadow-emerald-500/20 hover:bg-emerald-600 transition-colors disabled:opacity-60 disabled:cursor-not-allowed shrink-0"
                     >
-                      自动填充
+                      {fillLoading ? "填充中..." : "自动填充"}
                     </button>
                   </div>
                   <p className="text-[10px] text-slate-400 mt-1">

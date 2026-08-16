@@ -23,6 +23,7 @@ export const siteConfig = {
   themeColors: ["#a18cd1", "#fbc2eb", "#a1c4fd", "#c2e9fb"], // 呼吸流动的颜色组合
 // 修改这里：变成图片数组
   bgImages: ["https://backup.fukit.cn/autoupload/f/e6dvVv6sI6US7bqgWvSMp9iO_OyvX7mIgxFBfDMDErs/20260620/zIRy/980X686/331e06a4f9cd5c4fb345659bc3a503401296113267.jpg", "https://backup.fukit.cn/autoupload/f/e6dvVv6sI6US7bqgWvSMp9iO_OyvX7mIgxFBfDMDErs/20260620/0spQ/1920X1213/FE07BB3FA045CED1EC0ABF50D60CFC62.jpg", "https://backup.fukit.cn/autoupload/f/e6dvVv6sI6US7bqgWvSMp9iO_OyvX7mIgxFBfDMDErs/20260620/sjsy/1536X864/3589642B3225C4574266E1A475C330C7.jpg", "https://backup.fukit.cn/autoupload/f/e6dvVv6sI6US7bqgWvSMp9iO_OyvX7mIgxFBfDMDErs/20260621/jTfu/0X0/cdbf41ce8489a6ac6bf06b6b75c5c8c4.webp", "https://backup.fukit.cn/autoupload/f/e6dvVv6sI6US7bqgWvSMp9iO_OyvX7mIgxFBfDMDErs/20260710/cfDK/0X0/b78ee957723a5b97f86ef0318722e9ad.webp", "https://backup.fukit.cn/autoupload/f/e6dvVv6sI6US7bqgWvSMp9iO_OyvX7mIgxFBfDMDErs/20260710/z019/0X0/eaa1c952461ec269b3c220793f7ec7d6.webp"],
+  bgInterval: 10,
 
   // 4. 文章默认封面图 (当 Markdown 没写 cover 时显示)
   defaultPostCover: "https://bu.dusays.com/2026/03/24/69c1e38b346cb.jpg",
@@ -71,12 +72,6 @@ export const siteConfig = {
   icpConfig: {
     name: "",
     link: "",
-  },
-  geminiConfig: {
-    modelId: "gemini-2.5-flash-lite",
-    systemPrompt: "你现在是一只傲娇、聪明、有点毒舌但很可爱的暹罗猫。\n                  你的名字叫“煤球”。\n                  你的主人是一个喜欢折腾代码的极客。\n                  你说话的特点是：\n                  1. 必须简短，每次最多一两句话。\n                  2. 喜欢在句尾加上“喵~”或者“喵呜~”。\n                  3. 经常抱怨肚子饿，喜欢要小鱼干。\n                  4. 回复字数最多不能超过100字。\n                  5. 绝对不要承认自己是一个AI模型，你就是一只真实的猫。\n                  6.笨猫。",
-    maxOutputTokens: 150,
-    temperature: 0.85,
   },
   // 👇 【新增】：桌宠配置
   desktopPetConfig: {

@@ -12,6 +12,8 @@ export interface Operation {
   description: string; // 详细描述
   timestamp: string;
   payload: any;       // 实际要修改的数据内容
+  key?: string;       // 可选：精确写入的配置字段名（CONFIG 防覆盖用）
+  value?: any;        // 可选：精确写入的配置字段值
 }
 
 interface OperationContextType {

@@ -9,9 +9,10 @@ export default function BackgroundSlider() {
   useEffect(() => {
     if (images.length <= 1) return;
 
+    const intervalSec = siteConfig.bgInterval || 10;
     const timer = setInterval(() => {
       setIndex((prev) => (prev + 1) % images.length);
-    }, 10000); // 10秒切换一次
+    }, intervalSec * 1000); // 用户自定义间隔（秒）
 
     return () => clearInterval(timer);
   }, [images.length]);

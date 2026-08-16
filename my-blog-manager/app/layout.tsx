@@ -13,7 +13,6 @@ import GlobalToolbox from "../components/GlobalToolbox";
 import SplashScreen from "../components/SplashScreen";
 import { OperationProvider } from "../context/OperationContext";
 import { ToastProvider } from '../components/ToastProvider';
-import CyberCat from '../components/CyberCat';
 import DanmakuBackground from '../components/DanmakuBackground';
 import GlobalSnow from '../components/GlobalSnow';
 
@@ -118,7 +117,6 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
             </ToastProvider>
           </OperationProvider>
         </ThemeProvider>
-        <CyberCat />
       </body>
     </html>
   );

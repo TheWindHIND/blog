@@ -53,6 +53,61 @@ async def check_blog_path(request: Request):
         return {"success": False, "message": f"校验异常: {str(e)}"}
 
 
+def do_sync(target_path, full=False):
+    """执行物理覆盖同步（可被 deploy.py 的一键部署复用）
+
+    full=True 时与「一键部署网站.bat」的同步范围完全一致：
+    额外镜像 data/ 与 public/ 整目录（增量覆盖，不删除目标多余文件，等价 xcopy /e /y）
+    返回 (success: bool, message: str)
+    """
+    if not is_safe_blog_dir(target_path):
+        return False, "安全拦截：目标路径不合法！"
+
+    # 1. 同步文件夹 (先彻底删除目标文件夹，再把 Manager 的复制过去)
+    for d in SYNC_DIRS:
+        src_dir = os.path.join(PROJECT_ROOT, d)
+        dst_dir = os.path.join(target_path, d)
+
+        if os.path.exists(src_dir):
+            if os.path.exists(dst_dir):
+                shutil.rmtree(dst_dir)
+            shutil.copytree(src_dir, dst_dir)
+
+    # 1.5 🌟 full 模式：镜像 data/ 与 public/（对齐一键部署网站.bat 的 [6/10][7/10] 步骤）
+    if full:
+        for d in ("data", "public"):
+            src_dir = os.path.join(PROJECT_ROOT, d)
+            dst_dir = os.path.join(target_path, d)
+            if os.path.exists(src_dir):
+                os.makedirs(dst_dir, exist_ok=True)
+                shutil.copytree(src_dir, dst_dir, dirs_exist_ok=True)
+
+    # 2. 同步单个文件 (直接覆盖或过滤)
+    for f in SYNC_FILES:
+        src_file = os.path.join(PROJECT_ROOT, f.replace("/", os.sep))
+        dst_file = os.path.join(target_path, f.replace("/", os.sep))
+
+        if os.path.exists(src_file):
+            os.makedirs(os.path.dirname(dst_file), exist_ok=True)
+
+            # 🌟 核心过滤逻辑：如果是 siteConfig.ts，拦截并剔除敏感信息
+            if f == "siteConfig.ts":
+                with open(src_file, "r", encoding="utf-8") as file_in:
+                    lines = file_in.readlines()
+
+                with open(dst_file, "w", encoding="utf-8") as file_out:
+                    for line in lines:
+                        # 只要这一行包含以下关键词，直接跳过不写入
+                        if "picBedName:" in line or "picBedUrl:" in line or "picBedToken:" in line or "图床核心配置" in line:
+                            continue
+                        file_out.write(line)
+            else:
+                # 其他普通文件，直接物理拷贝
+                shutil.copy2(src_file, dst_file)
+
+    return True, "内容同步完成（已剔除图床敏感配置）"
+
+
 @router.post("/execute")
 async def execute_sync(request: Request):
     """执行物理覆盖同步"""
@@ -60,42 +115,7 @@ async def execute_sync(request: Request):
         payload = await request.json()
         target_path = payload.get("blogPath", "").strip()
 
-        if not is_safe_blog_dir(target_path):
-            return {"success": False, "message": "安全拦截：目标路径不合法！"}
-
-        # 1. 同步文件夹 (先彻底删除目标文件夹，再把 Manager 的复制过去)
-        for d in SYNC_DIRS:
-            src_dir = os.path.join(PROJECT_ROOT, d)
-            dst_dir = os.path.join(target_path, d)
-
-            if os.path.exists(src_dir):
-                if os.path.exists(dst_dir):
-                    shutil.rmtree(dst_dir)
-                shutil.copytree(src_dir, dst_dir)
-
-        # 2. 同步单个文件 (直接覆盖或过滤)
-        for f in SYNC_FILES:
-            src_file = os.path.join(PROJECT_ROOT, f.replace("/", os.sep))
-            dst_file = os.path.join(target_path, f.replace("/", os.sep))
-
-            if os.path.exists(src_file):
-                os.makedirs(os.path.dirname(dst_file), exist_ok=True)
-
-                # 🌟 核心过滤逻辑：如果是 siteConfig.ts，拦截并剔除敏感信息
-                if f == "siteConfig.ts":
-                    with open(src_file, "r", encoding="utf-8") as file_in:
-                        lines = file_in.readlines()
-
-                    with open(dst_file, "w", encoding="utf-8") as file_out:
-                        for line in lines:
-                            # 只要这一行包含以下关键词，直接跳过不写入
-                            if "picBedName:" in line or "picBedUrl:" in line or "picBedToken:" in line or "图床核心配置" in line:
-                                continue
-                            file_out.write(line)
-                else:
-                    # 其他普通文件，直接物理拷贝
-                    shutil.copy2(src_file, dst_file)
-
-        return {"success": True, "message": "🎉 完美撒花！所有文章与配置已镜像覆盖至目标博客。"}
+        success, message = do_sync(target_path)
+        return {"success": success, "message": "🎉 " + message if success else message}
     except Exception as e:
         return {"success": False, "message": f"同步过程中发生致命错误: {str(e)}"}
