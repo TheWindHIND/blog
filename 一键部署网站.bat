@@ -155,6 +155,12 @@ echo.
 echo [OK] 依赖检查完成
 echo.
 
+:: 清理旧的 out 目录中的 git 仓库（防止 EBUSY 锁定）
+if exist "out\.git" (
+    rmdir /s /q "out\.git" 2>nul
+    echo [提示] 已清理 out\.git
+)
+
 :: 构建（Next.js 16 默认 Turbopack，但自定义 webpack 配置需要显式指定 --webpack）
 echo [5/8] 正在构建网站...
 echo.
