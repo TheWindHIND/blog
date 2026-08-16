@@ -242,9 +242,14 @@ function EditorContent() {
           </aside>
         </main>
       </PageTransition>
-      <FloatingImageTool isOpen={isImgToolOpen} onClose={() => setIsImgToolOpen(false)} onInsert={(url) => {
-        if (imgToolTarget === 'editor') { editorRef.current?.insertImage(url); if (!cover) setCover(url); }
-        else { setCover(url); setIsImgToolOpen(false); }
+      <FloatingImageTool isOpen={isImgToolOpen} onClose={() => setIsImgToolOpen(false)} onInsert={(urls) => {
+        if (imgToolTarget === 'editor') {
+          editorRef.current?.insertImages(urls);
+          if (!cover && urls.length > 0) setCover(urls[0]);
+        } else {
+          setCover(urls[0] || '');
+          setIsImgToolOpen(false);
+        }
         setHasUnsavedChanges(true);
       }} />
     </div>

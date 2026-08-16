@@ -111,6 +111,7 @@ const CustomColorPicker = ({ activeColor, onSelect, onConfirm, recentColors, onC
 
 export interface RichTextEditorHandle {
   insertImage: (url: string) => void;
+  insertImages: (urls: string[]) => void;
   getContent: () => string;
 }
 
@@ -169,6 +170,14 @@ const RichTextEditor = forwardRef<RichTextEditorHandle, EditorProps>(({ title, s
     insertImage: (url: string) => {
       if (editor) {
         editor.chain().focus().setImage({ src: url }).run();
+        if (onChange) onChange();
+      }
+    },
+    insertImages: (urls: string[]) => {
+      if (editor) {
+        let chain = editor.chain().focus();
+        urls.forEach(url => { chain = chain.setImage({ src: url }); });
+        chain.run();
         if (onChange) onChange();
       }
     },

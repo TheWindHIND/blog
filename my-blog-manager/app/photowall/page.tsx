@@ -63,11 +63,20 @@ export default function PhotoWallPage() {
         key={isImgToolOpen ? 'tool-open' : 'tool-closed'}
         isOpen={isImgToolOpen}
         onClose={() => setIsImgToolOpen(false)}
-        onInsert={(url) => {
+        onInsert={(urls) => {
           if (imgToolTarget === 'album') {
-            setAlbumModal(prev => ({ ...prev, data: { ...prev.data, cover: url } }));
+            setAlbumModal(prev => ({ ...prev, data: { ...prev.data, cover: urls[0] || '' } }));
           } else {
-            setPhotoModal(prev => ({ ...prev, data: { ...prev.data, url: url } }));
+            // 批量添加照片到当前相册
+            if (currentAlbum && urls.length > 0) {
+              const newPhotos = urls.map(url => ({ url, caption: '' }));
+              const updatedAlbum = { ...currentAlbum, photos: [...currentAlbum.photos, ...newPhotos] };
+              setCurrentAlbum(updatedAlbum);
+              const next = editableAlbums.map(a => a.id === updatedAlbum.id ? updatedAlbum : a);
+              setEditableAlbums(next);
+              syncToQueue(next);
+              showToast(`✅ 已添加 ${urls.length} 张照片`, 'success');
+            }
           }
           setIsImgToolOpen(false);
         }}
@@ -119,6 +128,33 @@ export default function PhotoWallPage() {
                    <button onClick={() => { setImgToolTarget('album'); setIsImgToolOpen(true); }} className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center rounded-xl bg-indigo-500 text-white hover:bg-indigo-600 transition-colors shadow-md" title="唤起图床">
                       <CloudUpload size={18} />
                    </button>
+                </div>
+
+                {/* 翻页动画选择 */}
+                <div>
+                  <label className="text-xs font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2 block">翻页动画效果</label>
+                  <div className="grid grid-cols-5 gap-2">
+                    {[
+                      { value: 'spatial-rift', icon: '🌌', label: '时空裂隙' },
+                      { value: 'magic-cube', icon: '🧊', label: '魔方拆解' },
+                      { value: 'liquid-glass', icon: '💧', label: '液态玻璃' },
+                      { value: 'infinite-depth', icon: '🚀', label: '无限景深' },
+                      { value: 'domino-wave', icon: '🀄', label: '多米诺波' },
+                    ].map(mode => (
+                      <button
+                        key={mode.value}
+                        onClick={() => setAlbumModal({...albumModal, data: {...albumModal.data, animationMode: mode.value as any}})}
+                        className={`flex flex-col items-center gap-1 py-2.5 px-1 rounded-xl border-2 transition-all text-center ${
+                          (albumModal.data.animationMode || 'spatial-rift') === mode.value
+                            ? 'border-indigo-500 bg-indigo-500/10 dark:bg-indigo-500/20'
+                            : 'border-transparent bg-slate-100 dark:bg-black/20 hover:border-slate-300 dark:hover:border-slate-600'
+                        }`}
+                      >
+                        <span className="text-lg">{mode.icon}</span>
+                        <span className="text-[9px] font-bold text-slate-600 dark:text-slate-300 leading-tight">{mode.label}</span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
               <div className="mt-8 flex gap-3">
@@ -264,9 +300,9 @@ export default function PhotoWallPage() {
 
               <div className="columns-1 sm:columns-2 md:columns-3 lg:columns-4 gap-6 space-y-6">
 
-                <div onClick={() => setPhotoModal({ isOpen: true, mode: 'add', data: {} })} className="break-inside-avoid group cursor-pointer border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-[32px] min-h-[200px] flex flex-col items-center justify-center bg-white/10 dark:bg-slate-800/10 hover:border-indigo-500 transition-all duration-500">
+                <div onClick={() => { setImgToolTarget('photos'); setIsImgToolOpen(true); }} className="break-inside-avoid group cursor-pointer border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-[32px] min-h-[200px] flex flex-col items-center justify-center bg-white/10 dark:bg-slate-800/10 hover:border-indigo-500 transition-all duration-500">
                    <Plus size={32} className="text-slate-400 group-hover:text-indigo-500 transition-all" />
-                   <span className="mt-3 text-[10px] font-black uppercase tracking-widest text-slate-400">添加碎片</span>
+                   <span className="mt-3 text-[10px] font-black uppercase tracking-widest text-slate-400">批量上传照片</span>
                 </div>
 
                 {currentAlbum.photos.map((photo, index) => (

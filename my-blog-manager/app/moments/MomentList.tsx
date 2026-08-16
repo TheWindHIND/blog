@@ -1,12 +1,13 @@
 "use client";
 
 import { useState, useMemo, useEffect, useRef } from 'react';
-import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
-import { MapPin, MessageSquare, Clock, Sparkles, Search, ArrowDownAZ, ArrowUpZA, ChevronLeft, ChevronRight, Ghost, Plus, Image as ImageIcon, X, Send, Link as LinkIcon, Zap, Trash2, AlertTriangle } from 'lucide-react';
+import { motion, AnimatePresence, LayoutGroup, Reorder } from 'framer-motion';
+import { MapPin, MessageSquare, Clock, Sparkles, Search, ArrowDownAZ, ArrowUpZA, ChevronLeft, ChevronRight, Ghost, Plus, Image as ImageIcon, X, Send, Link as LinkIcon, Zap, Trash2, AlertTriangle, GripVertical, Upload } from 'lucide-react';
 import MomentComments from '../../components/MomentComments';
 import { useToast } from '../../components/ToastProvider';
 import { siteConfig } from '../../siteConfig';
 import { useOperations } from '../../context/OperationContext';
+import FloatingImageTool from '../../components/editor/FloatingImageTool';
 
 function timeAgo(dateStr: string) {
   const date = new Date(dateStr);
@@ -37,6 +38,7 @@ export default function MomentList({ moments, authorName, avatarUrl }: any) {
 
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isImgToolOpen, setIsImgToolOpen] = useState(false);
 
   const processedMoments = useMemo(() => {
     let baseMoments = moments ? [...moments] : [];
@@ -448,63 +450,32 @@ export default function MomentList({ moments, authorName, avatarUrl }: any) {
               </div>
 
               <div className="flex flex-col gap-4 mb-6">
-                <div
-                  onDragOver={e => { e.preventDefault(); setIsDragging(true); }}
-                  onDragLeave={() => setIsDragging(false)}
-                  onDrop={handleDrop}
-                  onClick={() => fileInputRef.current?.click()}
-                  className={`w-full border-2 border-dashed rounded-2xl p-5 flex flex-col items-center justify-center gap-2 cursor-pointer transition-all ${
-                    isDragging 
-                      ? 'border-indigo-500 bg-indigo-50/50 dark:bg-indigo-900/20' 
-                      : 'border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800/50'
-                  }`}
-                >
-                  <input type="file" multiple ref={fileInputRef} onChange={(e) => e.target.files && handleFileUpload(e.target.files)} accept="image/*" className="hidden" />
-                  {isUploading ? (
-                    <Clock className="animate-spin text-indigo-500" size={28} />
-                  ) : (
-                    <ImageIcon className="text-slate-400" size={28} />
-                  )}
-                  <span className="text-sm font-bold text-slate-500 dark:text-slate-400">
-                    {isUploading ? '极速上传中...' : '点击或拖拽图片到这里'}
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <div className="relative flex-1 group">
-                    <LinkIcon className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
-                    <input
-                      type="text"
-                      placeholder="粘贴外链 URL 添加..."
-                      value={imageUrlInput}
-                      onChange={(e) => setImageUrlInput(e.target.value)}
-                      className="w-full bg-white/50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-700/50 rounded-2xl py-3 pl-12 pr-4 text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
-                    />
-                  </div>
-                  <button
-                    onClick={handleAddImageUrl}
-                    disabled={!imageUrlInput.trim()}
-                    className="px-5 py-3 rounded-2xl bg-indigo-100 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400 font-bold text-sm hover:bg-indigo-200 dark:hover:bg-indigo-500/30 transition-all disabled:opacity-50 shrink-0"
-                  >
-                    添加
+                {/* 图片上传入口 */}
+                <div className="flex gap-3">
+                  <button onClick={() => setIsImgToolOpen(true)} className="flex-1 py-4 border-2 border-dashed border-indigo-300 dark:border-indigo-700 rounded-2xl flex items-center justify-center gap-2 text-indigo-500 hover:bg-indigo-50/50 dark:hover:bg-indigo-900/20 transition-all cursor-pointer">
+                    <Upload size={20} />
+                    <span className="text-sm font-bold">批量上传图片</span>
                   </button>
                 </div>
               </div>
 
               {newMoment.images.length > 0 && (
-                <div className="grid grid-cols-4 sm:grid-cols-5 gap-3 mb-8">
+                <Reorder.Group axis="x" values={newMoment.images} onReorder={(newOrder) => setNewMoment(prev => ({ ...prev, images: newOrder }))} className="grid grid-cols-4 sm:grid-cols-5 gap-3 mb-8">
                   {newMoment.images.map((img, idx) => (
-                    <div key={idx} className="relative aspect-square rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 shadow-sm group">
+                    <Reorder.Item key={img} value={img} className="relative aspect-square rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 shadow-sm group cursor-grab active:cursor-grabbing">
                       <img src={img} alt="preview" className="w-full h-full object-cover" />
+                      <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-b from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-start justify-between p-1">
+                        <GripVertical size={12} className="text-white/70" />
+                      </div>
                       <button
                         onClick={(e) => { e.stopPropagation(); setNewMoment(prev => ({ ...prev, images: prev.images.filter((_, i) => i !== idx) })) }}
                         className="absolute top-1.5 right-1.5 w-6 h-6 flex items-center justify-center bg-black/60 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500"
                       >
                         <X size={14} />
                       </button>
-                    </div>
+                    </Reorder.Item>
                   ))}
-                </div>
+                </Reorder.Group>
               )}
 
               <div className="flex flex-wrap gap-3 mt-auto pt-4 border-t border-slate-200/50 dark:border-slate-700/50">
@@ -557,6 +528,16 @@ export default function MomentList({ moments, authorName, avatarUrl }: any) {
           </div>
         )}
       </AnimatePresence>
+
+      {/* FloatingImageTool 批量上传 */}
+      <FloatingImageTool
+        isOpen={isImgToolOpen}
+        onClose={() => setIsImgToolOpen(false)}
+        onInsert={(urls) => {
+          setNewMoment(prev => ({ ...prev, images: [...prev.images, ...urls] }));
+          showToast(`✅ 已添加 ${urls.length} 张图片`, "success");
+        }}
+      />
 
       <AnimatePresence>
         {lightbox && (
