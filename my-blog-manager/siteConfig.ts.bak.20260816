@@ -47,6 +47,9 @@ export const siteConfig = {
   chatterDescription: "代码、学术、提瓦特与泰拉大陆的碎片记录",
 
   // 👇 【新增】：图床核心配置 (PicBed Configuration)
+  picBedName: "图床",
+  picBedUrl: "https://api.stardots.ink/v1/upload", // 默认的 Lsky Pro API 地址
+  picBedToken: "31062355-2d2c-4a65-a4d5-0080f3la6d19", // 留空，等你能在后台填入并覆写
 
   // 👇 【新增】：全局背景弹幕配置
   danmakuList: ["2333", "嗯....不知道写什么了", "无聊中", "Ciallo～(∠・ω< )⌒★", "关注藏枫喵！关注藏枫谢谢喵！关注藏枫喵！关注藏枫谢谢喵！", "在干嘛呢？", "有笨蛋嘛？", "前方高能反应！", "睡大觉中", "到底在干嘛？"],

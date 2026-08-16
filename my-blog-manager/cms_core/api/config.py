@@ -52,21 +52,21 @@ def find_matching_bracket(content, start_pos, open_bracket='['):
     in_string = False
     string_quote = ''
     escaped = False
-    
+
     i = start_pos + 1
     while i < len(content):
         char = content[i]
-        
+
         if escaped:
             escaped = False
             i += 1
             continue
-        
+
         if char == '\\' and in_string:
             escaped = True
             i += 1
             continue
-        
+
         if char in ('"', "'", '`'):
             if not in_string:
                 in_string = True
@@ -75,7 +75,7 @@ def find_matching_bracket(content, start_pos, open_bracket='['):
                 in_string = False
             i += 1
             continue
-        
+
         if not in_string:
             if char == open_bracket:
                 depth += 1
@@ -83,14 +83,174 @@ def find_matching_bracket(content, start_pos, open_bracket='['):
                 depth -= 1
                 if depth == 0:
                     return i
-        
+
         i += 1
-    
+
     return -1
 
 
 # =========================================================
-# 🚀 接口 1：读取配置 (GET) - 终极安全隔离版 (🌟 修复布尔值读取)
+# 🌟 通用 TypeScript 对象解析器（F1 修复核心）
+# 逐字符扫描顶层键值对，正确处理：
+#   - 字符串内的括号/逗号/注释（不误判）
+#   - 数组值（localMusic / cloudMusicIds / bgImages 等）→ json.loads
+#   - 嵌套对象值（social / gitalkConfig 等）→ 递归解析
+#   - 行注释与块注释
+# =========================================================
+def _skip_ws_and_comments(content, i):
+    n = len(content)
+    while i < n:
+        c = content[i]
+        if c in ' \t\r\n,':
+            i += 1
+        elif c == '/' and i + 1 < n and content[i + 1] == '/':
+            j = content.find('\n', i)
+            i = n if j == -1 else j + 1
+        elif c == '/' and i + 1 < n and content[i + 1] == '*':
+            j = content.find('*/', i + 2)
+            i = n if j == -1 else j + 2
+        else:
+            break
+    return i
+
+
+def _convert_scalar(raw):
+    """将标量原文转换为 Python 值，无法识别返回 None"""
+    raw = raw.strip()
+    if not raw:
+        return None
+    if raw in ('true', 'false'):
+        return raw == 'true'
+    if raw == 'null' or raw == 'undefined':
+        return None
+    # 引号字符串（优先 json.loads 保证转义正确）
+    if raw[0] in ('"', "'", '`'):
+        quote = raw[0]
+        inner = raw[1:-1] if raw.endswith(quote) and len(raw) >= 2 else raw[1:]
+        if quote == '"':
+            try:
+                return json.loads(raw)
+            except Exception:
+                return inner.replace('\\n', '\n')
+        # 单引号/反引号：手动还原常见转义
+        return inner.replace("\\\\", "\x00").replace("\\'", "'").replace('\\n', '\n').replace("\x00", "\\")
+    try:
+        return int(raw)
+    except ValueError:
+        pass
+    try:
+        return float(raw)
+    except ValueError:
+        return None
+
+
+def parse_ts_object(body_text):
+    """解析 TS 对象字面量的内部文本（不含最外层花括号），返回 dict"""
+    result = {}
+    n = len(body_text)
+    i = 0
+    while i < n:
+        i = _skip_ws_and_comments(body_text, i)
+        if i >= n:
+            break
+        # ---- 读取 key（支持不带引号 / 双引号 / 单引号）----
+        key_match = re.match(r'(?:"([^"]+)"|\'([^\']+)\'|([A-Za-z_$][A-Za-z0-9_$]*))\s*:', body_text[i:])
+        if not key_match:
+            # 无法识别的片段，跳过一个字符防止死循环
+            i += 1
+            continue
+        key = key_match.group(1) or key_match.group(2) or key_match.group(3)
+        i += key_match.end()
+
+        i = _skip_ws_and_comments(body_text, i)
+        if i >= n:
+            break
+
+        # ---- 读取 value ----
+        c = body_text[i]
+        if c in '[{':
+            close_pos = find_matching_bracket(body_text, i, c)
+            if close_pos == -1:
+                break
+            raw_value = body_text[i:close_pos + 1]
+            i = close_pos + 1
+            if c == '[':
+                # 数组：siteConfig 中的数组均由 json.dumps 生成，为合法 JSON
+                try:
+                    result[key] = json.loads(raw_value)
+                except Exception:
+                    # 兜底：尝试修复单引号/尾逗号后重试
+                    fixed = re.sub(r',\s*\]', ']', raw_value)
+                    try:
+                        result[key] = json.loads(fixed)
+                    except Exception:
+                        print(f"  ⚠️ 数组字段 [{key}] 解析失败，已跳过")
+            else:
+                # 嵌套对象：递归解析
+                result[key] = parse_ts_object(raw_value[1:-1])
+        else:
+            # 标量：读到本层级的逗号或结尾
+            j = i
+            in_string = False
+            quote = ''
+            escaped = False
+            while j < n:
+                cj = body_text[j]
+                if escaped:
+                    escaped = False
+                    j += 1
+                    continue
+                if in_string:
+                    if cj == '\\':
+                        escaped = True
+                    elif cj == quote:
+                        in_string = False
+                    j += 1
+                    continue
+                if cj in ('"', "'", '`'):
+                    in_string = True
+                    quote = cj
+                    j += 1
+                    continue
+                if cj == ',':
+                    break
+                # 行注释出现在值后面（如 photos: 128, // 注释）
+                if cj == '/' and j + 1 < n and body_text[j + 1] == '/':
+                    k = body_text.find('\n', j)
+                    j = n if k == -1 else k
+                    break
+                if cj == '/' and j + 1 < n and body_text[j + 1] == '*':
+                    k = body_text.find('*/', j + 2)
+                    j = n if k == -1 else k + 2
+                    continue
+                if cj in '{[(':  # 标量后紧跟结构（异常情况），交给下一轮
+                    break
+                j += 1
+            raw_value = body_text[i:j].strip()
+            converted = _convert_scalar(raw_value)
+            if converted is not None:
+                result[key] = converted
+            i = j
+    return result
+
+
+def parse_site_config(content):
+    """从 siteConfig.ts 全文中提取根对象并解析为 dict"""
+    # 定位 export const siteConfig = {
+    header_match = re.search(r'export\s+const\s+\w+\s*=\s*\{', content)
+    if not header_match:
+        return {}
+    open_pos = content.find('{', header_match.start())
+    close_pos = find_matching_bracket(content, open_pos, '{')
+    if close_pos == -1:
+        return {}
+    return parse_ts_object(content[open_pos + 1:close_pos])
+
+
+# =========================================================
+# 🚀 接口 1：读取配置 (GET) - 通用解析器版
+# 🌟 F1 修复：正确返回所有数组字段（localMusic/cloudMusicIds/bgImages 等），
+#    彻底消除旧正则解析丢数组、被歌词内容污染产生垃圾键的问题
 # =========================================================
 @router.get("/get")
 def get_site_config():
@@ -102,49 +262,15 @@ def get_site_config():
         with open(config_path, 'r', encoding='utf-8') as f:
             content = f.read()
 
-        parsed_config = {}
-        root_content = content
+        parsed_config = parse_site_config(content)
 
-        # 1. 🌟 预先提取并隔离所有已知的“嵌套对象”，防止内部属性泄露到外层！
-        known_dicts = ['social', 'gitalkConfig', 'geminiConfig', 'icpConfig']
-        for dict_name in known_dicts:
-            dict_match = re.search(rf'{dict_name}\s*:\s*\{{([\s\S]+?)\}}', content)
-            if dict_match:
-                dict_str = dict_match.group(1)
-                # 从根内容中剔除，防止下面的通用正则去抓里面的零散数据
-                root_content = re.sub(rf'{dict_name}\s*:\s*\{{[\s\S]+?\}},?', '', root_content)
+        # 兼容旧前端：Gitalk 的 admin 数组兜底
+        gitalk = parsed_config.get('gitalkConfig')
+        if isinstance(gitalk, dict) and 'admin' not in gitalk:
+            gitalk['admin'] = []
 
-                sub_dict = {}
-                # 提取字符串（支持安全匹配包含 \n 的字符串）
-                for m in re.finditer(r'([a-zA-Z0-9_]+)\s*:\s*(["\'])([\s\S]*?)\2', dict_str):
-                    # 将转义的 \\n 恢复为真实的换行，供前端显示
-                    sub_dict[m.group(1)] = m.group(3).replace('\\n', '\n')
-
-                # Gitalk 的管理员数组特供处理
-                if dict_name == 'gitalkConfig':
-                    admin_match = re.search(r'admin\s*:\s*\[(.*?)\]', dict_str)
-                    if admin_match:
-                        admin_raw = admin_match.group(1)
-                        sub_dict['admin'] = [x.strip(" \"'") for x in admin_raw.split(',') if x.strip(" \"'")]
-                    else:
-                        sub_dict['admin'] = []
-
-                parsed_config[dict_name] = sub_dict
-
-        # 2. 🌟 核心升级：提取外层基础变量（现在支持 字符串、布尔值、数字！）
-        for match in re.finditer(r'([a-zA-Z0-9_]+)\s*:\s*(?:(["\'])([\s\S]*?)\2|(true|false|\d+))', root_content):
-            key = match.group(1)
-            str_val = match.group(3) # 匹配到的字符串
-            raw_val = match.group(4) # 匹配到的布尔或数字
-
-            if str_val is not None:
-                parsed_config[key] = str_val.replace('\\n', '\n')
-            elif raw_val == 'true':
-                parsed_config[key] = True
-            elif raw_val == 'false':
-                parsed_config[key] = False
-            elif raw_val.isdigit():
-                parsed_config[key] = int(raw_val)
+        if not parsed_config:
+            return {"success": False, "message": "siteConfig.ts 解析结果为空，请检查文件格式"}
 
         return {"success": True, "data": parsed_config}
     except Exception as e:
@@ -182,6 +308,13 @@ def update_site_config(payload: Dict[str, Any] = Body(...)):
     try:
         with open(config_path, 'r', encoding='utf-8') as f:
             content = f.read()
+
+        # 🌟 F3 防覆盖保险：写盘前自动备份上一版配置
+        try:
+            import shutil
+            shutil.copy2(config_path, config_path + '.bak')
+        except Exception as backup_err:
+            print(f"  ⚠️ 备份失败（不阻塞写入）: {backup_err}")
 
         print("\n" + "=" * 50)
         print(f"🔥 启动物理引擎，目标文件: {config_path}")

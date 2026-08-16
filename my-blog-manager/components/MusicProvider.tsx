@@ -82,25 +82,65 @@ export function MusicProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let isMounted = true;
-    const fetchMusicData = async () => {
-      try {
-        const res = await fetch(`/api/music?ids=${siteConfig.cloudMusicIds.join(',')}`);
-        const rawResults = await res.json();
 
-        const cloudPlaylist = rawResults
-          .filter((song: any) => song && song.url && !song.error)
-          .map((song: any) => ({
-            id: song.id || Math.random().toString(),
-            title: song.name || '未知歌曲',
-            artist: song.artist || song.author || '未知歌手',
-            cover: song.cover || song.pic || 'https://bu.dusays.com/2026/03/24/69c24230a5ff8.jpg',
-            src: song.url,
-            lrcUrl: null,
-            lyrics: song.lrc ? parseLrc(song.lrc) : []
-          }));
+    // 【F4 实时化】优先从后端 API 拉取磁盘上的最新 siteConfig，失败则回退静态导入快照
+    const resolveLiveMusicConfig = async (): Promise<{
+      cloudMusicIds: string[];
+      localMusic: any[];
+    } | null> => {
+      try {
+        const configRes = await fetch(`/backend_config.json?t=${Date.now()}`, { cache: 'no-store' });
+        if (!configRes.ok) return null;
+        const { api_port } = await configRes.json();
+        if (!api_port) return null;
+
+        const res = await fetch(`http://127.0.0.1:${api_port}/api/config/get`, { cache: 'no-store' });
+        if (!res.ok) return null;
+        const json = await res.json();
+        const data = json?.data || {};
+        const cloudIds = Array.isArray(data.cloudMusicIds) ? data.cloudMusicIds : null;
+        const localMusic = Array.isArray(data.localMusic) ? data.localMusic : null;
+        if (!cloudIds && !localMusic) return null;
+        return {
+          cloudMusicIds: cloudIds || [],
+          localMusic: localMusic || []
+        };
+      } catch {
+        // 后端未启动或网络异常 → 使用静态导入（构建快照）兜底
+        return null;
+      }
+    };
+
+    const fetchMusicData = async () => {
+      // 静态快照兜底值
+      let cloudMusicIds: string[] = siteConfig.cloudMusicIds || [];
+      let localMusicSource: any[] = siteConfig.localMusic || [];
+
+      const live = await resolveLiveMusicConfig();
+      if (live) {
+        cloudMusicIds = live.cloudMusicIds;
+        localMusicSource = live.localMusic;
+      }
+
+      try {
+        const cloudPlaylist = cloudMusicIds.length > 0
+          ? await fetch(`/api/music?ids=${cloudMusicIds.join(',')}`)
+              .then(r => r.json())
+              .then(rawResults => (rawResults || [])
+                .filter((song: any) => song && song.url && !song.error)
+                .map((song: any) => ({
+                  id: song.id || Math.random().toString(),
+                  title: song.name || '未知歌曲',
+                  artist: song.artist || song.author || '未知歌手',
+                  cover: song.cover || song.pic || 'https://bu.dusays.com/2026/03/24/69c24230a5ff8.jpg',
+                  src: song.url,
+                  lrcUrl: null,
+                  lyrics: song.lrc ? parseLrc(song.lrc) : []
+                })))
+          : [];
 
         // 加载本地音乐/音乐直链
-        const localPlaylist = (siteConfig.localMusic || [])
+        const localPlaylist = (localMusicSource || [])
           .filter((song: any) => song && song.url)
           .map((song: any) => ({
             id: song.id || Math.random().toString(),
@@ -124,8 +164,7 @@ export function MusicProvider({ children }: { children: ReactNode }) {
       }
     };
 
-    if (siteConfig.cloudMusicIds?.length > 0 || siteConfig.localMusic?.length > 0) fetchMusicData();
-    else setIsLoading(false);
+    fetchMusicData();
 
     return () => { isMounted = false; };
   }, []);

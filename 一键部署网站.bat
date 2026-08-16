@@ -39,9 +39,9 @@ echo.
 echo [3/8] 正在同步控制面板内容...
 echo.
 
-:: 1. 同步站点配置
+:: 1. 同步站点配置（过滤图床敏感信息，与后端 /api/sync 的过滤逻辑保持一致，避免 Token 泄露到公开仓库）
 echo   [1/10] 同步站点配置...
-copy /y "my-blog-manager\siteConfig.ts" "XHBlogs\siteConfig.ts" >nul
+findstr /v /c:"picBedName:" /c:"picBedUrl:" /c:"picBedToken:" "my-blog-manager\siteConfig.ts" > "XHBlogs\siteConfig.ts"
 
 :: 2. 同步关于页面
 echo   [2/10] 同步关于页面...

@@ -87,20 +87,29 @@ function SettingsContent() {
 
         if (data.success && data.data) {
           console.log("✅ 成功从后端拉取到真实配置:", data.data);
-          setFormData((prev: any) => ({
-            ...prev,
-            ...data.data,
-            social: { ...(prev.social || {}), ...(data.data.social || {}) },
-            gitalkConfig: { ...(prev.gitalkConfig || {}), ...(data.data.gitalkConfig || {}) },
-            danmakuList: data.data.danmakuList ? [...data.data.danmakuList] : prev.danmakuList,
-            buildDate: data.data.buildDate || prev.buildDate,
-            icpConfig: data.data.icpConfig || prev.icpConfig,
-            footerBadges: data.data.footerBadges ? [...data.data.footerBadges] : prev.footerBadges,
-            // 👇 🌟 合并后端发来的小猫配置
-            geminiConfig: { ...(prev.geminiConfig || {}), ...(data.data.geminiConfig || {}) },
-            // 👇 🌟 合并后端发来的桌宠配置
-            desktopPetConfig: { ...(prev.desktopPetConfig || {}), ...(data.data.desktopPetConfig || {}) }
-          }));
+          setFormData((prev: any) => {
+            const merged = {
+              ...prev,
+              ...data.data,
+              social: { ...(prev.social || {}), ...(data.data.social || {}) },
+              gitalkConfig: { ...(prev.gitalkConfig || {}), ...(data.data.gitalkConfig || {}) },
+              danmakuList: data.data.danmakuList ? [...data.data.danmakuList] : prev.danmakuList,
+              buildDate: data.data.buildDate || prev.buildDate,
+              icpConfig: data.data.icpConfig || prev.icpConfig,
+              footerBadges: data.data.footerBadges ? [...data.data.footerBadges] : prev.footerBadges,
+              // 👇 🌟 合并后端发来的小猫配置
+              geminiConfig: { ...(prev.geminiConfig || {}), ...(data.data.geminiConfig || {}) },
+              // 👇 🌟 合并后端发来的桌宠配置
+              desktopPetConfig: { ...(prev.desktopPetConfig || {}), ...(data.data.desktopPetConfig || {}) }
+            };
+            // 🌟 F2 修复：数组字段（含音乐列表）必须以磁盘实时数据为准，
+            // 替代旧的构建时静态快照，否则界面显示旧数据、暂存后会覆盖新数据
+            const ARRAY_KEYS = ['cloudMusicIds', 'localMusic', 'bgImages', 'danmakuList', 'footerBadges', 'themeColors'];
+            ARRAY_KEYS.forEach(k => {
+              if (Array.isArray(data.data[k])) merged[k] = data.data[k];
+            });
+            return merged;
+          });
         } else {
           console.error("❌ 后端返回失败:", data.message);
           showToast("读取后端配置失败，当前显示为本地静态数据", "warning");
@@ -268,13 +277,16 @@ function SettingsContent() {
   };
 
   const pushToQueue = (label: string, key?: string, value?: any) => {
+    // 🌟 F3 防覆盖修复：带 key 的暂存只提交该字段，避免整个 formData
+    //（可能含其他模块的旧快照数据）在执行队列时整体覆盖磁盘配置
+    const payload = key ? { [key]: value } : formData;
     addOperation({
       id: Date.now().toString(),
       type: 'CONFIG',
       label: `配置暂存：${label}`,
       description: `修改了系统的 ${label}，等待同步至 my-blog`,
       timestamp: new Date().toLocaleTimeString().slice(0, 5),
-      payload: formData,
+      payload: payload,
       key: key,
       value: value
     });

@@ -8,9 +8,9 @@ cd /d "%~dp0"
 echo 正在同步...
 echo.
 
-:: 同步站点配置
+:: 同步站点配置（过滤图床敏感信息，与后端 /api/sync 的过滤逻辑保持一致，避免 Token 泄露到公开仓库）
 echo   [1/7] 同步站点配置...
-copy /y "my-blog-manager\siteConfig.ts" "XHBlogs\siteConfig.ts" >nul
+findstr /v /c:"picBedName:" /c:"picBedUrl:" /c:"picBedToken:" "my-blog-manager\siteConfig.ts" > "XHBlogs\siteConfig.ts"
 
 :: 同步关于页面
 echo   [2/7] 同步关于页面...
