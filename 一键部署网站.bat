@@ -139,28 +139,26 @@ echo.
 echo [4/8] 进入博客目录...
 cd XHBlogs
 
-:: 安装依赖
-if not exist "node_modules" (
+:: 安装/更新依赖（确保 package.json 中的依赖都已安装）
+echo.
+echo [提示] 正在检查依赖...
+echo.
+call npm install
+if %errorlevel% neq 0 (
     echo.
-    echo [提示] 正在安装依赖，第一次运行需要几分钟...
+    echo [错误] 依赖安装失败！
     echo.
-    call npm install
-    if %errorlevel% neq 0 (
-        echo.
-        echo [错误] 依赖安装失败！
-        echo.
-        pause
-        exit /b 1
-    )
-    echo.
-    echo [OK] 依赖安装完成
-    echo.
+    pause
+    exit /b 1
 )
+echo.
+echo [OK] 依赖检查完成
+echo.
 
-:: 构建
+:: 构建（Next.js 16 默认 Turbopack，但自定义 webpack 配置需要显式指定 --webpack）
 echo [5/8] 正在构建网站...
 echo.
-call npm run build
+call npx next build --webpack
 if %errorlevel% neq 0 (
     echo.
     echo ========================================
