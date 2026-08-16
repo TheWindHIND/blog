@@ -15,6 +15,7 @@ import { OperationProvider } from "../context/OperationContext";
 import { ToastProvider } from '../components/ToastProvider';
 import DanmakuBackground from '../components/DanmakuBackground';
 import GlobalSnow from '../components/GlobalSnow';
+import CyberCat from '../components/CyberCat';
 
 // 🌟 1. 引入 Next.js 官方脚本组件
 import Script from 'next/script';
@@ -91,6 +92,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
                   </div>
 
                   <FloatingPlayer />
+                  <CyberCat />
                   <GlobalToolbox />
                   <ClickEffect />
                 </div>
