@@ -133,13 +133,14 @@ export default function PhotoWallPage() {
                 {/* 翻页动画选择 */}
                 <div>
                   <label className="text-xs font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2 block">翻页动画效果</label>
-                  <div className="grid grid-cols-5 gap-2">
+                  <div className="grid grid-cols-3 gap-2">
                     {[
                       { value: 'spatial-rift', icon: '🌌', label: '时空裂隙' },
-                      { value: 'magic-cube', icon: '🧊', label: '魔方拆解' },
-                      { value: 'liquid-glass', icon: '💧', label: '液态玻璃' },
-                      { value: 'infinite-depth', icon: '🚀', label: '无限景深' },
-                      { value: 'domino-wave', icon: '🀄', label: '多米诺波' },
+                      { value: 'card-flip', icon: '🃏', label: '卡片翻转' },
+                      { value: 'slide-switch', icon: '➡️', label: '滑动切换' },
+                      { value: 'fade-zoom', icon: '🔍', label: '淡入缩放' },
+                      { value: 'page-turn', icon: '📖', label: '仿真翻页' },
+                      { value: 'carousel-3d', icon: '🎠', label: '3D走马灯' },
                     ].map(mode => (
                       <button
                         key={mode.value}

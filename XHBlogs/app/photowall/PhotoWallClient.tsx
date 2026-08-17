@@ -1,23 +1,10 @@
 "use client";
 
-import { useState, useMemo, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
+import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import Navbar from '../../components/Navbar';
 import PageTransition from '../../components/PageTransition';
 import { albums, Album, AnimationMode } from '../../data/albums';
 import { createAnimationEngine, ANIMATION_MODES, AnimationEngine } from '../../components/PhotoAnimationEngine';
-
-// Three.js 组件懒加载
-const MagicCubeScene = lazy(() => import('../../components/ThreeAnimations').then(m => ({ default: m.MagicCubeScene })));
-const LiquidGlassScene = lazy(() => import('../../components/ThreeAnimations').then(m => ({ default: m.LiquidGlassScene })));
-const InfiniteDepthScene = lazy(() => import('../../components/ThreeAnimations').then(m => ({ default: m.InfiniteDepthScene })));
-
-function ThreeFallback() {
-  return (
-    <div className="w-full h-full flex items-center justify-center">
-      <div className="text-white/50 text-sm font-medium animate-pulse">加载 3D 引擎中...</div>
-    </div>
-  );
-}
 
 export default function PhotoWallClient() {
   const [currentAlbum, setCurrentAlbum] = useState<Album | null>(null);
@@ -27,12 +14,9 @@ export default function PhotoWallClient() {
   const [activeQuery, setActiveQuery] = useState('');
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
-  const [nextPhotoIndex, setNextPhotoIndex] = useState<number | null>(null);
   const [isGridMode, setIsGridMode] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
-  const [threeTransitioning, setThreeTransitioning] = useState(false);
-  const [threeDirection, setThreeDirection] = useState<'next' | 'prev'>('next');
 
   // 滚轮交互状态
   const [isExpanded, setIsExpanded] = useState(false);
@@ -67,16 +51,15 @@ export default function PhotoWallClient() {
 
   const currentMode = (currentAlbum?.animationMode || 'spatial-rift') as AnimationMode;
   const modeInfo = ANIMATION_MODES.find(m => m.value === currentMode);
-  const isThreeMode = ['magic-cube', 'liquid-glass', 'infinite-depth'].includes(currentMode);
 
-  // 初始化 CSS 动画引擎（非 Three.js 模式）
+  // 初始化 CSS 动画引擎
   useEffect(() => {
-    if (!currentAlbum || isGridMode || isThreeMode || !animContainerRef.current) return;
+    if (!currentAlbum || isGridMode || !animContainerRef.current) return;
     const engine = createAnimationEngine(currentMode);
     engine.init(animContainerRef.current, currentAlbum.photos.map(p => p.url));
     engineRef.current = engine;
     return () => { engine.destroy(); engineRef.current = null; };
-  }, [currentAlbum, isGridMode, isThreeMode, currentMode]);
+  }, [currentAlbum, isGridMode, currentMode]);
 
   // 翻页函数（支持循环）
   const navigatePhoto = useCallback((direction: 'next' | 'prev') => {
@@ -84,17 +67,11 @@ export default function PhotoWallClient() {
     const photos = currentAlbum.photos;
     if (photos.length <= 1) return;
 
-    // 循环索引
     const nextIdx = direction === 'next'
       ? (currentPhotoIndex + 1) % photos.length
       : (currentPhotoIndex - 1 + photos.length) % photos.length;
 
-    if (isThreeMode) {
-      setNextPhotoIndex(nextIdx);
-      setThreeDirection(direction);
-      setThreeTransitioning(true);
-      setIsAnimating(true);
-    } else if (engineRef.current && animContainerRef.current) {
+    if (engineRef.current && animContainerRef.current) {
       setIsAnimating(true);
       engineRef.current.transition({
         images: photos.map(p => p.url),
@@ -107,42 +84,25 @@ export default function PhotoWallClient() {
         },
       });
     }
-  }, [currentAlbum, currentPhotoIndex, isAnimating, isThreeMode]);
-
-  const handleThreeTransitionEnd = useCallback(() => {
-    if (nextPhotoIndex !== null) {
-      setCurrentPhotoIndex(nextPhotoIndex);
-      setNextPhotoIndex(null);
-    }
-    setThreeTransitioning(false);
-    setIsAnimating(false);
-  }, [nextPhotoIndex]);
+  }, [currentAlbum, currentPhotoIndex, isAnimating]);
 
   // 滚轮交互：隐藏标题 + 最大化画面
   useEffect(() => {
     if (!currentAlbum || isGridMode || selectedImage) return;
 
     const handleWheel = (e: WheelEvent) => {
-      // 全屏查看器打开时不处理
       if (selectedImage) return;
-
       e.preventDefault();
       wheelAccumRef.current += e.deltaY;
 
-      // 清除之前的定时器
       if (wheelTimerRef.current) clearTimeout(wheelTimerRef.current);
 
-      // 阈值：累积滚动量超过 120 切换状态
       if (Math.abs(wheelAccumRef.current) > 120) {
-        if (wheelAccumRef.current > 0 && !isExpanded) {
-          setIsExpanded(true); // 向下滚动 → 展开
-        } else if (wheelAccumRef.current < 0 && isExpanded) {
-          setIsExpanded(false); // 向上滚动 → 收起
-        }
+        if (wheelAccumRef.current > 0 && !isExpanded) setIsExpanded(true);
+        else if (wheelAccumRef.current < 0 && isExpanded) setIsExpanded(false);
         wheelAccumRef.current = 0;
       }
 
-      // 500ms 无操作重置累积
       wheelTimerRef.current = setTimeout(() => { wheelAccumRef.current = 0; }, 500);
     };
 
@@ -192,19 +152,15 @@ export default function PhotoWallClient() {
     touchStartRef.current = null;
   };
 
-  // 进入相册
   const openAlbum = (album: Album) => {
     setSearchQuery('');
     setCurrentAlbum(album);
     setCurrentPhotoIndex(0);
     setIsGridMode(false);
     setIsAnimating(false);
-    setThreeTransitioning(false);
-    setNextPhotoIndex(null);
     setIsExpanded(false);
   };
 
-  // 离开相册
   const closeAlbum = () => {
     setCurrentAlbum(null);
     setIsGridMode(false);
@@ -213,7 +169,6 @@ export default function PhotoWallClient() {
     setIsExpanded(false);
   };
 
-  // 全屏查看器导航（支持循环）
   const navigateViewer = useCallback((direction: 'next' | 'prev') => {
     if (!currentAlbum) return;
     const photos = currentAlbum.photos;
@@ -229,32 +184,6 @@ export default function PhotoWallClient() {
     if (!currentAlbum) return;
     setViewerIndex(index);
     setSelectedImage({ url: currentAlbum.photos[index].url, caption: currentAlbum.photos[index].caption });
-  };
-
-  // 渲染 Three.js 场景
-  const renderThreeScene = () => {
-    if (!currentAlbum) return null;
-    const photos = currentAlbum.photos;
-    const currentUrl = photos[currentPhotoIndex]?.url;
-    const nextUrl = nextPhotoIndex !== null ? photos[nextPhotoIndex]?.url : null;
-
-    const commonProps = {
-      imageUrl: currentUrl,
-      nextImageUrl: nextUrl,
-      isTransitioning: threeTransitioning,
-      onTransitionEnd: handleThreeTransitionEnd,
-    };
-
-    switch (currentMode) {
-      case 'magic-cube':
-        return <Suspense fallback={<ThreeFallback />}><MagicCubeScene {...commonProps} direction={threeDirection} /></Suspense>;
-      case 'liquid-glass':
-        return <Suspense fallback={<ThreeFallback />}><LiquidGlassScene {...commonProps} /></Suspense>;
-      case 'infinite-depth':
-        return <Suspense fallback={<ThreeFallback />}><InfiniteDepthScene images={photos.map(p => p.url)} currentIndex={currentPhotoIndex} nextIndex={nextPhotoIndex} {...commonProps} /></Suspense>;
-      default:
-        return null;
-    }
   };
 
   return (
@@ -342,10 +271,10 @@ export default function PhotoWallClient() {
             </div>
           )}
 
-          {/* ===== 相册详情：动画/网格模式 ===== */}
+          {/* ===== 相册详情 ===== */}
           {currentAlbum && (
             <div className="animate-fade-in-up">
-              {/* 顶部信息栏 — 展开时隐藏标题描述，只保留功能栏 */}
+              {/* 顶部信息栏 */}
               <div
                 className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 border-b border-slate-300/50 dark:border-slate-700/50 pb-6 overflow-hidden transition-all duration-700 ease-out"
                 style={{
@@ -389,13 +318,13 @@ export default function PhotoWallClient() {
                 )}
               </div>
 
-              {/* 动画模式 / 网格模式 */}
+              {/* 动画/网格模式 */}
               {!isGridMode ? (
                 <div className="relative">
                   <div
                     ref={animContainerRef}
-                    onPointerDown={!isThreeMode ? handlePointerDown : undefined}
-                    onPointerUp={!isThreeMode ? handlePointerUp : undefined}
+                    onPointerDown={handlePointerDown}
+                    onPointerUp={handlePointerUp}
                     onDoubleClick={() => openViewer(currentPhotoIndex)}
                     className="w-full bg-black/90 dark:bg-black rounded-3xl overflow-hidden border border-white/10 shadow-2xl select-none cursor-pointer transition-all duration-700 ease-out"
                     style={{
@@ -406,24 +335,20 @@ export default function PhotoWallClient() {
                       position: 'relative',
                     }}
                   >
-                    {/* Three.js 场景 */}
-                    {isThreeMode ? (
-                      renderThreeScene()
-                    ) : (
-                      currentAlbum.photos[currentPhotoIndex] && (
-                        <div className="absolute inset-0 flex items-center justify-center p-4">
-                          <img
-                            data-react-static
-                            src={currentAlbum.photos[currentPhotoIndex].url}
-                            alt={currentAlbum.photos[currentPhotoIndex].caption || ''}
-                            className="w-full h-full object-contain rounded-2xl shadow-2xl transition-transform duration-300"
-                            style={{ transform: hoveredIndex === currentPhotoIndex ? 'scale(1.03)' : 'scale(1)' }}
-                            onMouseEnter={() => setHoveredIndex(currentPhotoIndex)}
-                            onMouseLeave={() => setHoveredIndex(null)}
-                            draggable={false}
-                          />
-                        </div>
-                      )
+                    {/* CSS 动画模式的静态图 */}
+                    {currentAlbum.photos[currentPhotoIndex] && (
+                      <div className="absolute inset-0 flex items-center justify-center p-4">
+                        <img
+                          data-react-static
+                          src={currentAlbum.photos[currentPhotoIndex].url}
+                          alt={currentAlbum.photos[currentPhotoIndex].caption || ''}
+                          className="w-full h-full object-contain rounded-2xl shadow-2xl transition-transform duration-300"
+                          style={{ transform: hoveredIndex === currentPhotoIndex ? 'scale(1.03)' : 'scale(1)' }}
+                          onMouseEnter={() => setHoveredIndex(currentPhotoIndex)}
+                          onMouseLeave={() => setHoveredIndex(null)}
+                          draggable={false}
+                        />
+                      </div>
                     )}
                   </div>
 
@@ -447,7 +372,7 @@ export default function PhotoWallClient() {
                     </>
                   )}
 
-                  {/* 底部照片指示器 + 描述 — 展开时隐藏 */}
+                  {/* 底部指示器 */}
                   {!isExpanded && (
                     <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex flex-col items-center gap-3 z-20">
                       {currentAlbum.photos[currentPhotoIndex]?.caption && (
@@ -462,12 +387,7 @@ export default function PhotoWallClient() {
                             onClick={() => {
                               if (i === currentPhotoIndex || isAnimating) return;
                               const direction = i > currentPhotoIndex ? 'next' : 'prev';
-                              if (isThreeMode) {
-                                setNextPhotoIndex(i);
-                                setThreeDirection(direction);
-                                setThreeTransitioning(true);
-                                setIsAnimating(true);
-                              } else if (engineRef.current && animContainerRef.current) {
+                              if (engineRef.current && animContainerRef.current) {
                                 setIsAnimating(true);
                                 engineRef.current.transition({
                                   images: currentAlbum.photos.map(p => p.url),
@@ -493,7 +413,7 @@ export default function PhotoWallClient() {
                   </div>
                 </div>
               ) : (
-                /* ===== 网格模式 ===== */
+                /* 网格模式 */
                 <div className="columns-1 sm:columns-2 md:columns-3 lg:columns-4 gap-6 space-y-6">
                   {currentAlbum.photos.map((photo, index) => (
                     <div
@@ -502,12 +422,7 @@ export default function PhotoWallClient() {
                       className="break-inside-avoid relative group rounded-2xl overflow-hidden cursor-zoom-in shadow-lg bg-white/20 dark:bg-slate-800/20 border border-white/30 dark:border-white/10 transition-all duration-500 hover:scale-[1.02] hover:shadow-2xl hover:shadow-indigo-500/20 animate-fade-in-up"
                       style={{ animationDelay: `${index * 50}ms` }}
                     >
-                      <img
-                        src={photo.url}
-                        alt={photo.caption || '照片'}
-                        className="w-full h-auto object-cover transition-transform duration-700 group-hover:scale-105"
-                        loading="lazy"
-                      />
+                      <img src={photo.url} alt={photo.caption || '照片'} className="w-full h-auto object-cover transition-transform duration-700 group-hover:scale-105" loading="lazy" />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 flex flex-col justify-end p-5">
                         {photo.caption && <p className="text-white font-medium text-sm drop-shadow-md translate-y-4 group-hover:translate-y-0 transition-transform duration-500">{photo.caption}</p>}
                       </div>
@@ -516,7 +431,7 @@ export default function PhotoWallClient() {
                 </div>
               )}
 
-              {/* 右下角模式切换滑块 */}
+              {/* 模式切换滑块 */}
               {currentAlbum.photos.length > 0 && (
                 <div className="fixed bottom-8 right-8 z-50">
                   <div className="bg-white/20 dark:bg-slate-800/40 backdrop-blur-xl border border-white/30 dark:border-white/10 rounded-2xl p-3 shadow-xl flex items-center gap-3">
@@ -527,10 +442,7 @@ export default function PhotoWallClient() {
                       onClick={() => setIsGridMode(!isGridMode)}
                       className={`relative w-14 h-7 rounded-full transition-all duration-300 ${isGridMode ? 'bg-indigo-500' : 'bg-slate-400 dark:bg-slate-600'}`}
                     >
-                      <div
-                        className="absolute top-0.5 w-6 h-6 bg-white rounded-full shadow-md transition-all duration-300"
-                        style={{ left: isGridMode ? '30px' : '2px' }}
-                      />
+                      <div className="absolute top-0.5 w-6 h-6 bg-white rounded-full shadow-md transition-all duration-300" style={{ left: isGridMode ? '30px' : '2px' }} />
                     </button>
                     <span className={`text-xs font-bold transition-colors ${isGridMode ? 'text-indigo-500' : 'text-slate-400'}`}>
                       ⊞ 网格
@@ -549,79 +461,40 @@ export default function PhotoWallClient() {
           className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-2xl flex flex-col items-center justify-center animate-fade-in"
           onClick={(e) => { if (e.target === e.currentTarget) setSelectedImage(null); }}
         >
-          {/* 顶部工具栏 */}
           <div className="absolute top-0 left-0 right-0 z-30 flex items-center justify-between px-6 py-4 bg-gradient-to-b from-black/60 to-transparent">
-            <div className="text-white/60 text-sm font-bold">
-              {viewerIndex + 1} / {currentAlbum.photos.length}
-            </div>
+            <div className="text-white/60 text-sm font-bold">{viewerIndex + 1} / {currentAlbum.photos.length}</div>
             <div className="flex items-center gap-2">
               {selectedImage.caption && (
-                <div className="px-4 py-1.5 bg-white/10 backdrop-blur-md border border-white/20 rounded-full text-white text-sm font-medium mr-2">
-                  {selectedImage.caption}
-                </div>
+                <div className="px-4 py-1.5 bg-white/10 backdrop-blur-md border border-white/20 rounded-full text-white text-sm font-medium mr-2">{selectedImage.caption}</div>
               )}
-              <button
-                onClick={() => setSelectedImage(null)}
-                className="text-white/50 hover:text-white transition-colors bg-white/10 hover:bg-white/20 rounded-full p-2"
-              >
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
+              <button onClick={() => setSelectedImage(null)} className="text-white/50 hover:text-white transition-colors bg-white/10 hover:bg-white/20 rounded-full p-2">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>
           </div>
 
-          {/* 左导航按钮 */}
           {currentAlbum.photos.length > 1 && (
-            <button
-              onClick={(e) => { e.stopPropagation(); navigateViewer('prev'); }}
-              className="absolute left-4 top-1/2 -translate-y-1/2 z-30 w-14 h-14 bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/20 rounded-full flex items-center justify-center text-white transition-all hover:scale-110 active:scale-95"
-            >
-              <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
-              </svg>
+            <button onClick={(e) => { e.stopPropagation(); navigateViewer('prev'); }}
+              className="absolute left-4 top-1/2 -translate-y-1/2 z-30 w-14 h-14 bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/20 rounded-full flex items-center justify-center text-white transition-all hover:scale-110 active:scale-95">
+              <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" /></svg>
             </button>
           )}
 
-          {/* 图片主体 */}
-          <img
-            src={selectedImage.url}
-            alt={selectedImage.caption || ''}
-            className="max-w-[90vw] max-h-[80vh] object-contain rounded-2xl shadow-2xl select-none transition-transform duration-200"
-            onClick={(e) => e.stopPropagation()}
-            draggable={false}
-          />
+          <img src={selectedImage.url} alt={selectedImage.caption || ''} className="max-w-[90vw] max-h-[80vh] object-contain rounded-2xl shadow-2xl select-none transition-transform duration-200" onClick={(e) => e.stopPropagation()} draggable={false} />
 
-          {/* 右导航按钮 */}
           {currentAlbum.photos.length > 1 && (
-            <button
-              onClick={(e) => { e.stopPropagation(); navigateViewer('next'); }}
-              className="absolute right-4 top-1/2 -translate-y-1/2 z-30 w-14 h-14 bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/20 rounded-full flex items-center justify-center text-white transition-all hover:scale-110 active:scale-95"
-            >
-              <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
-              </svg>
+            <button onClick={(e) => { e.stopPropagation(); navigateViewer('next'); }}
+              className="absolute right-4 top-1/2 -translate-y-1/2 z-30 w-14 h-14 bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/20 rounded-full flex items-center justify-center text-white transition-all hover:scale-110 active:scale-95">
+              <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" /></svg>
             </button>
           )}
 
-          {/* 底部缩略图导航条 */}
           {currentAlbum.photos.length > 1 && (
             <div className="absolute bottom-0 left-0 right-0 z-30 bg-gradient-to-t from-black/60 to-transparent pt-12 pb-4">
               <div className="flex items-center justify-center gap-2 px-4 overflow-x-auto no-scrollbar">
                 {currentAlbum.photos.map((photo, i) => (
-                  <button
-                    key={i}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setViewerIndex(i);
-                      setSelectedImage({ url: photo.url, caption: photo.caption });
-                    }}
-                    className={`flex-shrink-0 w-14 h-10 rounded-lg overflow-hidden border-2 transition-all duration-200 ${
-                      i === viewerIndex
-                        ? 'border-white scale-110 shadow-lg shadow-white/20'
-                        : 'border-white/20 opacity-50 hover:opacity-80 hover:scale-105'
-                    }`}
-                  >
+                  <button key={i} onClick={(e) => { e.stopPropagation(); setViewerIndex(i); setSelectedImage({ url: photo.url, caption: photo.caption }); }}
+                    className={`flex-shrink-0 w-14 h-10 rounded-lg overflow-hidden border-2 transition-all duration-200 ${i === viewerIndex ? 'border-white scale-110 shadow-lg shadow-white/20' : 'border-white/20 opacity-50 hover:opacity-80 hover:scale-105'}`}>
                     <img src={photo.url} alt="" className="w-full h-full object-cover" />
                   </button>
                 ))}
@@ -629,7 +502,6 @@ export default function PhotoWallClient() {
             </div>
           )}
 
-          {/* 键盘提示 */}
           <div className="absolute bottom-20 left-1/2 -translate-x-1/2 z-30 flex items-center gap-3 text-white/30 text-[10px] font-bold tracking-wider">
             <span className="px-2 py-0.5 border border-white/20 rounded">←</span>
             <span className="px-2 py-0.5 border border-white/20 rounded">→</span>
