@@ -1,12 +1,9 @@
 /**
- * 照片墙动画引擎 - 5 种高级翻页动画
- * 每种效果封装为独立类，便于维护
- *
+ * 照片墙动画引擎 - 2 种 CSS 动画 + 3 种 Three.js 标记
  * 1. 时空裂隙（SpatialRift）   — CSS 动态模糊 + Canvas 速度线 + 残影拖尾
- * 2. 魔方拆解（MagicCube）     — Three.js 4×4 网格 3D 旋转（React 组件内处理）
- * 3. 液态玻璃（LiquidGlass）   — Three.js ShaderMaterial 水波折射
- * 4. 无限景深（InfiniteDepth） — Three.js Z 轴穿梭 + 粒子星空 + Bloom
- * 5. 多米诺波（DominoWave）    — GSAP/CSS 3D 切片倾倒 + easeOutBack 回弹
+ * 5. 多米诺波（DominoWave）    — 30 条切片依次 Y 轴旋转 180° + easeOutBack 回弹
+ *
+ * 2/3/4 为 Three.js 模式，实际渲染由 ThreeAnimations.tsx 处理
  */
 
 export type AnimationMode = 'spatial-rift' | 'magic-cube' | 'liquid-glass' | 'infinite-depth' | 'domino-wave';
@@ -26,9 +23,7 @@ export interface AnimationEngine {
   init: (container: HTMLElement, images: string[]) => void;
   transition: (config: AnimationConfig) => void;
   destroy: () => void;
-  /** 是否支持鼠标滑动切换（非 Three.js 场景） */
   supportsSwipe: boolean;
-  /** 是否为 Three.js 场景（需要 R3F 组件渲染） */
   isThreeJS: boolean;
 }
 
@@ -76,16 +71,13 @@ export class SpatialRiftEngine implements AnimationEngine {
       ? (currentIndex + 1) % images.length
       : (currentIndex - 1 + images.length) % images.length;
 
-    /* -- 隐藏 React 渲染的静态图 -- */
     const reactImg = container.querySelector('img[data-react-static]') as HTMLElement | null;
     if (reactImg) reactImg.style.opacity = '0';
 
-    /* -- 创建当前图 DOM（用于甩出动画） -- */
     const currentEl = this.createImageEl(images[currentIndex], container, 20);
     const exitAngle = direction === 'next' ? -30 : 30;
     const exitX = direction === 'next' ? '-120%' : '120%';
 
-    /* -- 残影：克隆当前帧，透明度 20% -- */
     const ghost = currentEl.cloneNode(true) as HTMLElement;
     ghost.style.zIndex = '19';
     ghost.style.opacity = '0.2';
@@ -93,10 +85,8 @@ export class SpatialRiftEngine implements AnimationEngine {
     ghost.style.transition = 'all 0.5s ease-out';
     container.appendChild(ghost);
 
-    /* -- 速度线粒子 -- */
     const particles = this.createSpeedLines(7);
 
-    /* -- 当前图甩出 -- */
     requestAnimationFrame(() => {
       currentEl.style.transition = 'all 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
       currentEl.style.transform = `rotate(${exitAngle}deg) translate(${exitX}, -30%)`;
@@ -104,28 +94,24 @@ export class SpatialRiftEngine implements AnimationEngine {
       currentEl.style.opacity = '0.3';
     });
 
-    /* -- 新图飞入（反方向） -- */
     const nextEl = this.createImageEl(images[nextIndex], container, 21);
     const enterAngle = -exitAngle;
     nextEl.style.transform = `rotate(${enterAngle}deg) translate(${direction === 'next' ? '120%' : '-120%'}, 30%)`;
     nextEl.style.opacity = '0';
 
     setTimeout(() => {
-      nextEl.style.transition = 'all 0.45s cubic-bezier(0.19, 1, 0.22, 1)'; // power4.out
+      nextEl.style.transition = 'all 0.45s cubic-bezier(0.19, 1, 0.22, 1)';
       nextEl.style.opacity = '1';
       nextEl.style.transform = 'rotate(0deg) translate(0, 0)';
     }, 80);
 
-    /* -- 绘制速度线 -- */
     this.animateSpeedLines(particles);
 
-    /* -- 残影淡出 -- */
     setTimeout(() => {
       ghost.style.opacity = '0';
       ghost.style.transform = `rotate(${exitAngle * 0.5}deg) translate(${direction === 'next' ? '-60%' : '60%'}, -15%)`;
     }, 100);
 
-    /* -- 清理 -- */
     setTimeout(() => {
       currentEl.remove();
       ghost.remove();
@@ -213,7 +199,7 @@ export class SpatialRiftEngine implements AnimationEngine {
 
 /* ================================================================
  * 5. 多米诺波 — 30 条切片依次 Y 轴旋转 180° + easeOutBack 回弹
- *    支持进度条拖拽控制
+ *    每个切片是图片的一个垂直条带，倾倒后背面显示下一张图片
  * ================================================================ */
 export class DominoWaveEngine implements AnimationEngine {
   name = 'domino-wave';
@@ -222,11 +208,9 @@ export class DominoWaveEngine implements AnimationEngine {
   supportsSwipe = true;
   isThreeJS = false;
   private animating = false;
-  private currentSlices: HTMLElement[] = [];
-  private nextEl: HTMLElement | null = null;
+  private cleanupElements: HTMLElement[] = [];
   private container: HTMLElement | null = null;
   private totalSlices = 30;
-  private currentProgress = 0; // 0~1
 
   init(container: HTMLElement, _images: string[]) {
     container.style.position = 'relative';
@@ -244,91 +228,95 @@ export class DominoWaveEngine implements AnimationEngine {
       : (currentIndex - 1 + images.length) % images.length;
 
     const SLICES = this.totalSlices;
-    const DELAY_PER_SLICE = 40; // ms
-    const DURATION = 600; // ms per slice
+    const DELAY_PER_SLICE = 35; // ms
+    const DURATION = 500; // ms per slice
     const rect = container.getBoundingClientRect();
-    const sliceWidth = 100 / SLICES;
+    const sliceWidthPx = rect.width / SLICES;
+    const sliceWidthPercent = 100 / SLICES;
 
-    /* -- 隐藏 React 静态图 -- */
+    // 隐藏 React 静态图
     const reactImg = container.querySelector('img[data-react-static]') as HTMLElement | null;
     if (reactImg) reactImg.style.opacity = '0';
 
-    /* -- 渲染当前图切片 -- */
-    this.currentSlices = [];
+    this.cleanupElements = [];
+
+    // 创建切片：每个切片包含当前图片的一个条带（正面）和下一张图片的对应条带（背面）
     for (let i = 0; i < SLICES; i++) {
+      // 外层切片容器（控制 3D 翻转）
       const slice = document.createElement('div');
       slice.style.cssText = `
-        position:absolute;top:0;height:100%;width:${sliceWidth}%;
-        left:${i * sliceWidth}%;overflow:hidden;
-        transform-origin:center center;transform-style:preserve-3d;perspective:800px;
-        z-index:20;border-radius:16px;
+        position:absolute;top:0;height:100%;width:${sliceWidthPercent}%;
+        left:${i * sliceWidthPercent}%;
+        transform-style:preserve-3d;
+        perspective:1000px;
+        z-index:20;
       `;
-      const img = document.createElement('img');
-      img.src = images[currentIndex];
-      img.style.cssText = `
-        position:absolute;top:0;height:100%;width:${rect.width}px;
-        left:${-i * (rect.width / SLICES)}px;
-        object-fit:cover;user-select:none;pointer-events:none;
+
+      // 正面：当前图片的条带
+      const front = document.createElement('div');
+      front.style.cssText = `
+        position:absolute;inset:0;
+        backface-visibility:hidden;
+        overflow:hidden;
+        transform:rotateY(0deg);
       `;
-      slice.appendChild(img);
+      const frontImg = document.createElement('img');
+      frontImg.src = images[currentIndex];
+      frontImg.style.cssText = `
+        position:absolute;top:0;left:${-i * sliceWidthPx}px;
+        width:${rect.width}px;height:100%;
+        object-fit:cover;
+        user-select:none;pointer-events:none;
+      `;
+      front.appendChild(frontImg);
+
+      // 背面：下一张图片的条带
+      const back = document.createElement('div');
+      back.style.cssText = `
+        position:absolute;inset:0;
+        backface-visibility:hidden;
+        overflow:hidden;
+        transform:rotateY(180deg);
+      `;
+      const backImg = document.createElement('img');
+      backImg.src = images[nextIndex];
+      backImg.style.cssText = `
+        position:absolute;top:0;left:${-i * sliceWidthPx}px;
+        width:${rect.width}px;height:100%;
+        object-fit:cover;
+        user-select:none;pointer-events:none;
+      `;
+      back.appendChild(backImg);
+
+      slice.appendChild(front);
+      slice.appendChild(back);
       container.appendChild(slice);
-      this.currentSlices.push(slice);
+      this.cleanupElements.push(slice);
     }
 
-    /* -- 底层新图 -- */
-    this.nextEl = document.createElement('div');
-    this.nextEl.style.cssText = 'position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:15;';
-    const nextImg = document.createElement('img');
-    nextImg.src = images[nextIndex];
-    nextImg.style.cssText = 'max-width:100%;max-height:100%;object-fit:contain;border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,0.5);user-select:none;pointer-events:none;';
-    this.nextEl.appendChild(nextImg);
-    container.appendChild(this.nextEl);
-
-    /* -- 切片依次倾倒（easeOutBack = cubic-bezier(0.34, 1.56, 0.64, 1)） -- */
-    this.currentSlices.forEach((slice, i) => {
+    // 切片依次倾倒（easeOutBack = cubic-bezier(0.34, 1.56, 0.64, 1)）
+    this.cleanupElements.forEach((slice, i) => {
       const delay = i * DELAY_PER_SLICE;
       setTimeout(() => {
         slice.style.transition = `transform ${DURATION}ms cubic-bezier(0.34, 1.56, 0.64, 1)`;
-        slice.style.transform = `rotateY(${direction === 'next' ? 180 : -180}deg)`;
+        slice.style.transform = `rotateY(${direction === 'next' ? -180 : 180}deg)`;
       }, delay);
     });
 
-    /* -- 清理 -- */
-    const totalDuration = SLICES * DELAY_PER_SLICE + DURATION + 150;
+    // 清理
+    const totalDuration = SLICES * DELAY_PER_SLICE + DURATION + 200;
     setTimeout(() => {
-      this.currentSlices.forEach(s => s.remove());
-      this.currentSlices = [];
-      this.nextEl?.remove();
-      this.nextEl = null;
+      this.cleanupElements.forEach(el => el.remove());
+      this.cleanupElements = [];
       if (reactImg) reactImg.style.opacity = '1';
       this.animating = false;
       onComplete();
     }, totalDuration);
   }
 
-  /** 外部拖拽进度条调用（0~1） */
-  setProgress(progress: number) {
-    if (this.currentSlices.length === 0) return;
-    const clamped = Math.max(0, Math.min(1, progress));
-    this.currentProgress = clamped;
-    const total = this.currentSlices.length;
-    this.currentSlices.forEach((slice, i) => {
-      const sliceProgress = Math.max(0, Math.min(1, (clamped * total - i)));
-      // easeOutBack 曲线近似
-      const t = sliceProgress;
-      const overshoot = 1.4;
-      const eased = t < 1 ? 1 + (t - 1) * (t - 1) * ((overshoot + 1) * (t - 1) + overshoot) : 1;
-      const angle = eased * 180;
-      slice.style.transition = 'none';
-      slice.style.transform = `rotateY(${angle}deg)`;
-    });
-  }
-
   destroy() {
-    this.currentSlices.forEach(s => s.remove());
-    this.nextEl?.remove();
-    this.currentSlices = [];
-    this.nextEl = null;
+    this.cleanupElements.forEach(el => el.remove());
+    this.cleanupElements = [];
     this.animating = false;
   }
 }
@@ -370,8 +358,8 @@ export function createAnimationEngine(mode: AnimationMode): AnimationEngine {
 
 export const ANIMATION_MODES: { value: AnimationMode; label: string; icon: string; desc: string }[] = [
   { value: 'spatial-rift', label: '时空裂隙', icon: '🌌', desc: '动态模糊甩出 + 速度线粒子' },
-  { value: 'magic-cube', label: '魔方拆解', icon: '🧊', desc: '4×4 网格 3D 旋转散开聚合' },
-  { value: 'liquid-glass', label: '液态玻璃', icon: '💧', desc: '水波折射 + 镜面高光扫描' },
-  { value: 'infinite-depth', label: '无限景深', icon: '🚀', desc: 'Z 轴穿梭 + 粒子星空泛光' },
-  { value: 'domino-wave', label: '多米诺波', icon: '🀄', desc: '切片倾倒 + 物理回弹' },
+  { value: 'magic-cube', label: '魔方拆解', icon: '🧊', desc: '单图 4×4 切割 + 3D 旋转散开聚合' },
+  { value: 'liquid-glass', label: '液态玻璃', icon: '💧', desc: '鼠标停留处水波纹折射效果' },
+  { value: 'infinite-depth', label: '无限景深', icon: '🚀', desc: '照片穿梭飞近后退 + 粒子星空' },
+  { value: 'domino-wave', label: '多米诺波', icon: '🀄', desc: '30 切片依次倾倒 + 物理回弹' },
 ];
