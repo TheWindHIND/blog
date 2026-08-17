@@ -48,6 +48,8 @@ export const siteConfig = {
   chatterDescription: "代码、学术、提瓦特与泰拉大陆的碎片记录",
 
   // 👇 【新增】：图床核心配置 (PicBed Configuration)
+  picBedType: "stardots", // "lsky" | "stardots"
+  picBedSpace: "blogimg111", // StarDots 空间名
 
   // 👇 【新增】：全局背景弹幕配置
   danmakuList: ["2333", "嗯....不知道写什么了", "无聊中", "Ciallo～(∠・ω< )⌒★", "关注藏枫喵！关注藏枫谢谢喵！关注藏枫喵！关注藏枫谢谢喵！", "在干嘛呢？", "有笨蛋嘛？", "前方高能反应！", "睡大觉中", "到底在干嘛？"],

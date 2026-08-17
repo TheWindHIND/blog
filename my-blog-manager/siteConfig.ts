@@ -48,9 +48,11 @@ export const siteConfig = {
   chatterDescription: "代码、学术、提瓦特与泰拉大陆的碎片记录",
 
   // 👇 【新增】：图床核心配置 (PicBed Configuration)
-  picBedName: "图床",
-  picBedUrl: "https://api.stardots.ink/v1/upload", // 默认的 Lsky Pro API 地址
-  picBedToken: "31062355-2d2c-4a65-a4d5-0080f3la6d19", // 留空，等你能在后台填入并覆写
+  picBedType: "stardots", // "lsky" | "stardots"
+  picBedName: "StarDots",
+  picBedUrl: "https://api.stardots.io", // StarDots API 地址
+  picBedToken: "745e86d5-2a64-4d11-a144-0cfae59c6516|xtDbMUjTCMOTvnUx2v5aIWn2oO81DbWAFNQXPGWBdiXRL6OYY7CcvpR3eUlI4YtFvDmSNrJZbEoxQZp0VunQ3rKzDwBw266E2HO6oIUZhqWShU7rB6u0G1Hs8ZU8gTgQrz82L39e3yRe9Lzlk08PV8HLc5pHIThs4rZ9ASEt9yCdYkbZEBgamBgCDyAVKfFmss6xlCcU1oH2YU2vjyzAyxPTSXOETCNCJsUTCroj8w3YplGcYKTaWUvgiE7EgJn",
+  picBedSpace: "blogimg111", // StarDots 空间名
 
   // 👇 【新增】：全局背景弹幕配置
   danmakuList: ["2333", "嗯....不知道写什么了", "无聊中", "Ciallo～(∠・ω< )⌒★", "关注藏枫喵！关注藏枫谢谢喵！关注藏枫喵！关注藏枫谢谢喵！", "在干嘛呢？", "有笨蛋嘛？", "前方高能反应！", "睡大觉中", "到底在干嘛？"],

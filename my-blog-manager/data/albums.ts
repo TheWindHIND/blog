@@ -1,9 +1,95 @@
 // 🛡️ 本文件由 XingHuiSama 控制台自动生成，请勿手动修改
-export type AnimationMode = 'spatial-rift' | 'magic-cube' | 'liquid-glass' | 'infinite-depth' | 'domino-wave';
 export interface Photo { url: string; caption?: string; }
-export interface Album { id: string; title: string; description: string; cover: string; date: string; photos: Photo[]; animationMode?: AnimationMode; }
+export interface Album { id: string; title: string; description: string; cover: string; date: string; photos: Photo[]; }
 
 export const albums: Album[] = [
+  {
+    "animationMode": "domino-wave",
+    "title": "5",
+    "cover": "https://i.stardots.io/blogimg111/StarDots-2026081714094666410.png",
+    "id": "album_1786946989986",
+    "photos": [
+      {
+        "url": "https://i.stardots.io/blogimg111/StarDots-2026081714101489022.png",
+        "caption": ""
+      },
+      {
+        "url": "https://i.stardots.io/blogimg111/StarDots-2026081714101463097.png",
+        "caption": ""
+      },
+      {
+        "url": "https://i.stardots.io/blogimg111/StarDots-2026081714101563208.png",
+        "caption": ""
+      },
+      {
+        "url": "https://i.stardots.io/blogimg111/StarDots-2026081714101802389.png",
+        "caption": ""
+      }
+    ],
+    "date": "2026-08-17"
+  },
+  {
+    "animationMode": "magic-cube",
+    "title": "测试2",
+    "cover": "https://i.stardots.io/blogimg111/StarDots-2026081714075592135.jpg",
+    "id": "album_1786946881218",
+    "photos": [
+      {
+        "url": "https://i.stardots.io/blogimg111/StarDots-2026081714083582837.jpg",
+        "caption": ""
+      },
+      {
+        "url": "https://i.stardots.io/blogimg111/StarDots-2026081714085903703.jpg",
+        "caption": ""
+      },
+      {
+        "url": "https://i.stardots.io/blogimg111/StarDots-2026081714090646996.png",
+        "caption": ""
+      }
+    ],
+    "date": "2026-08-17"
+  },
+  {
+    "title": "测试1",
+    "cover": "https://i.stardots.io/blogimg111/StarDots-2026081714041381724.png",
+    "id": "album_1786946660300",
+    "photos": [
+      {
+        "url": "https://i.stardots.io/blogimg111/StarDots-2026081714044315792.png",
+        "caption": ""
+      },
+      {
+        "url": "https://i.stardots.io/blogimg111/StarDots-2026081714044302888.png",
+        "caption": ""
+      },
+      {
+        "url": "https://i.stardots.io/blogimg111/StarDots-2026081714045842798.png",
+        "caption": ""
+      }
+    ],
+    "date": "2026-08-17"
+  },
+  {
+    "title": "测试3",
+    "cover": "https://backup.fukit.cn/autoupload/f/e6dvVv6sI6US7bqgWvSMp9iO_OyvX7mIgxFBfDMDErs/20260710/cfDK/0X0/b78ee957723a5b97f86ef0318722e9ad.webp",
+    "animationMode": "liquid-glass",
+    "id": "album_1786946500435",
+    "photos": [
+      {
+        "url": "https://i.stardots.io/blogimg111/StarDots-2026081714022807811.jpg",
+        "caption": ""
+      },
+      {
+        "url": "https://i.stardots.io/blogimg111/StarDots-2026081714022790304.jpg",
+        "caption": ""
+      },
+      {
+        "url": "https://i.stardots.io/blogimg111/StarDots-2026081714022764699.jpg",
+        "caption": ""
+      }
+    ],
+    "date": "2026-08-17"
+  },
   {
     "title": "2233",
     "cover": "https://img.tofaka.com/autoupload/f/e3z5a/20260816/SHoC/1280X1722/illust_87528123_20260816_130655.jpg",

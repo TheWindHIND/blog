@@ -364,11 +364,12 @@ function FloatingPhotos({ images, currentIndex, nextIndex, isTransitioning, onTr
   isTransitioning: boolean; onTransitionEnd?: () => void;
 }) {
   const groupRef = useRef<THREE.Group>(null);
-  const cameraTargetZ = useRef(0);
   const currentPhotoRef = useRef<THREE.Mesh>(null);
   const nextPhotoRef = useRef<THREE.Mesh>(null);
   const transitionProgress = useRef(0);
-  const [animPhase, setAnimPhase] = useState<'idle' | 'zoom-in' | 'zoom-out'>('idle');
+  const animatingRef = useRef(false);
+  // 记录当前显示的图片索引（用于 Three.js 层面的纹理切换）
+  const displayIndexRef = useRef(currentIndex);
 
   // 生成照片位置
   const photoPositions = useMemo(() => {
@@ -388,29 +389,53 @@ function FloatingPhotos({ images, currentIndex, nextIndex, isTransitioning, onTr
     });
   }, [images]);
 
+  // 当 currentIndex 变化且非动画中时，更新当前照片的纹理
   useEffect(() => {
-    if (isTransitioning) {
-      setAnimPhase('zoom-in');
-      transitionProgress.current = 0;
+    if (!animatingRef.current && currentPhotoRef.current) {
+      const mat = currentPhotoRef.current.material as THREE.MeshStandardMaterial;
+      mat.map = textures[currentIndex];
+      mat.needsUpdate = true;
+      // 重置位置和缩放
+      currentPhotoRef.current.position.set(0, 0, 0);
+      currentPhotoRef.current.scale.set(1, 1, 1);
+      mat.opacity = 1;
+      displayIndexRef.current = currentIndex;
     }
-  }, [isTransitioning]);
+  }, [currentIndex, textures]);
+
+  // 触发动画开始
+  useEffect(() => {
+    if (isTransitioning && nextIndex !== null) {
+      animatingRef.current = true;
+      transitionProgress.current = 0;
+      // 确保 nextPhoto 的纹理正确
+      if (nextPhotoRef.current) {
+        const mat = nextPhotoRef.current.material as THREE.MeshStandardMaterial;
+        mat.map = textures[nextIndex];
+        mat.needsUpdate = true;
+        nextPhotoRef.current.position.set(0, 0, 8);
+        nextPhotoRef.current.scale.set(2, 2, 1);
+        mat.opacity = 0;
+      }
+    }
+  }, [isTransitioning, nextIndex, textures]);
 
   useFrame(({ camera }, delta) => {
-    if (animPhase === 'zoom-in') {
+    if (animatingRef.current) {
       transitionProgress.current += delta * 1.2;
+      const t = Math.min(1, transitionProgress.current);
 
-      // 当前照片缩小后退
+      // 当前照片缩小后退（使用绝对位置计算，不是增量）
       if (currentPhotoRef.current) {
-        const t = Math.min(1, transitionProgress.current);
         const scale = 1 - t * 0.8; // 1 → 0.2
         currentPhotoRef.current.scale.set(scale, scale, 1);
-        currentPhotoRef.current.position.z -= delta * 5;
+        // 使用绝对 Z 位置：从 0 到 -5
+        currentPhotoRef.current.position.z = -t * 5;
         (currentPhotoRef.current.material as THREE.MeshStandardMaterial).opacity = 1 - t * 0.5;
       }
 
       // 新照片从 Z=+8 穿镜铺满
-      if (nextPhotoRef.current && nextIndex !== null) {
-        const t = Math.min(1, transitionProgress.current);
+      if (nextPhotoRef.current) {
         const eased = 1 - Math.pow(1 - t, 3);
         const scale = 2 - eased; // 2 → 1
         nextPhotoRef.current.scale.set(scale, scale, 1);
@@ -420,9 +445,20 @@ function FloatingPhotos({ images, currentIndex, nextIndex, isTransitioning, onTr
         (nextPhotoRef.current.material as THREE.MeshStandardMaterial).opacity = eased;
       }
 
-      if (transitionProgress.current >= 1) {
-        setAnimPhase('idle');
+      if (t >= 1) {
+        animatingRef.current = false;
         transitionProgress.current = 0;
+        // 动画结束：将 nextPhoto 的纹理复制给 currentPhoto
+        if (nextPhotoRef.current && currentPhotoRef.current && nextIndex !== null) {
+          const nextMat = nextPhotoRef.current.material as THREE.MeshStandardMaterial;
+          const curMat = currentPhotoRef.current.material as THREE.MeshStandardMaterial;
+          curMat.map = nextMat.map;
+          curMat.needsUpdate = true;
+          currentPhotoRef.current.position.set(0, 0, 0);
+          currentPhotoRef.current.scale.set(1, 1, 1);
+          curMat.opacity = 1;
+          displayIndexRef.current = nextIndex;
+        }
         onTransitionEnd?.();
       }
     }
@@ -439,15 +475,16 @@ function FloatingPhotos({ images, currentIndex, nextIndex, isTransitioning, onTr
         if (i === currentIndex || i === nextIndex) return null;
         const pos = photoPositions[i];
         return (
-          <mesh key={i} position={[pos.x, pos.y, pos.z]}>
+          <mesh key={`bg-${i}`} position={[pos.x, pos.y, pos.z]}>
             <planeGeometry args={[1.6, 1.2]} />
             <meshStandardMaterial map={textures[i]} transparent opacity={0.15} side={THREE.DoubleSide} />
           </mesh>
         );
       })}
 
-      {/* 当前照片 */}
+      {/* 当前照片 — 始终存在，通过 ref 操作纹理 */}
       <mesh
+        key="current-photo"
         ref={currentPhotoRef}
         position={[0, 0, 0]}
       >
@@ -455,13 +492,19 @@ function FloatingPhotos({ images, currentIndex, nextIndex, isTransitioning, onTr
         <meshStandardMaterial map={textures[currentIndex]} transparent opacity={1} side={THREE.DoubleSide} />
       </mesh>
 
-      {/* 下一张照片（仅在切换时显示） */}
-      {nextIndex !== null && animPhase === 'zoom-in' && (
-        <mesh ref={nextPhotoRef} position={[0, 0, 8]}>
-          <planeGeometry args={[3.2, 2]} />
-          <meshStandardMaterial map={textures[nextIndex]} transparent opacity={0} side={THREE.DoubleSide} />
-        </mesh>
-      )}
+      {/* 下一张照片 — 始终存在（opacity=0 隐藏），通过 ref 控制 */}
+      <mesh
+        key="next-photo"
+        ref={nextPhotoRef}
+        position={[0, 0, 8]}
+        scale={[2, 2, 1]}
+      >
+        <planeGeometry args={[3.2, 2]} />
+        <meshStandardMaterial
+          map={nextIndex !== null ? textures[nextIndex] : textures[0]}
+          transparent opacity={0} side={THREE.DoubleSide}
+        />
+      </mesh>
     </group>
   );
 }

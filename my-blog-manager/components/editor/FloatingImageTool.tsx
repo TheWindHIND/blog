@@ -58,6 +58,8 @@ export default function FloatingImageTool({ isOpen, onClose, onInsert, maxImages
     if (!item.file) throw new Error('No file');
     const picUrl = (siteConfig as any).picBedUrl || "https://pic.dusays.com";
     const picToken = (siteConfig as any).picBedToken;
+    const picType = (siteConfig as any).picBedType || '';
+    const picSpace = (siteConfig as any).picBedSpace || '';
     if (!picToken) throw new Error('未配置图床 Token');
 
     const configRes = await fetch(`/backend_config.json?t=${Date.now()}`);
@@ -66,6 +68,8 @@ export default function FloatingImageTool({ isOpen, onClose, onInsert, maxImages
     formData.append('file', item.file);
     formData.append('url', picUrl);
     formData.append('token', picToken);
+    if (picType) formData.append('picbed_type', picType);
+    if (picSpace) formData.append('space', picSpace);
 
     const res = await fetch(`http://127.0.0.1:${configData.api_port}/api/picbed/upload`, {
       method: 'POST', body: formData,
