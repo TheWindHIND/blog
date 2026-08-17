@@ -1,10 +1,23 @@
 "use client";
 
-import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
+import { useState, useMemo, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
 import Navbar from '../../components/Navbar';
 import PageTransition from '../../components/PageTransition';
 import { albums, Album, AnimationMode } from '../../data/albums';
-import { createAnimationEngine, ANIMATION_MODES, AnimationEngine } from '../../components/PhotoAnimationEngine';
+import { createAnimationEngine, ANIMATION_MODES, AnimationEngine, DominoWaveEngine } from '../../components/PhotoAnimationEngine';
+
+// Three.js 组件懒加载
+const MagicCubeScene = lazy(() => import('../../components/ThreeAnimations').then(m => ({ default: m.MagicCubeScene })));
+const LiquidGlassScene = lazy(() => import('../../components/ThreeAnimations').then(m => ({ default: m.LiquidGlassScene })));
+const InfiniteDepthScene = lazy(() => import('../../components/ThreeAnimations').then(m => ({ default: m.InfiniteDepthScene })));
+
+function ThreeFallback() {
+  return (
+    <div className="w-full h-full flex items-center justify-center">
+      <div className="text-white/50 text-sm font-medium animate-pulse">加载 3D 引擎中...</div>
+    </div>
+  );
+}
 
 export default function PhotoWallClient() {
   const [currentAlbum, setCurrentAlbum] = useState<Album | null>(null);
@@ -13,13 +26,16 @@ export default function PhotoWallClient() {
   const [activeQuery, setActiveQuery] = useState('');
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
+  const [nextPhotoIndex, setNextPhotoIndex] = useState<number | null>(null);
   const [isGridMode, setIsGridMode] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+  const [threeTransitioning, setThreeTransitioning] = useState(false);
+  const [threeDirection, setThreeDirection] = useState<'next' | 'prev'>('next');
 
   const animContainerRef = useRef<HTMLDivElement>(null);
   const engineRef = useRef<AnimationEngine | null>(null);
-  const touchStartRef = useRef<{ x: number; y: number } | null>(null);
+  const touchStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
 
   // 搜索防抖
   useEffect(() => {
@@ -43,64 +59,89 @@ export default function PhotoWallClient() {
     return { matchedAlbums, matchedPhotos };
   }, [activeQuery]);
 
-  // 初始化动画引擎
+  const currentMode = (currentAlbum?.animationMode || 'spatial-rift') as AnimationMode;
+  const modeInfo = ANIMATION_MODES.find(m => m.value === currentMode);
+  const isThreeMode = ['magic-cube', 'liquid-glass', 'infinite-depth'].includes(currentMode);
+
+  // 初始化 CSS 动画引擎（非 Three.js 模式）
   useEffect(() => {
-    if (!currentAlbum || isGridMode || !animContainerRef.current) return;
-    const mode = currentAlbum.animationMode || 'spatial-rift';
-    const engine = createAnimationEngine(mode);
+    if (!currentAlbum || isGridMode || isThreeMode || !animContainerRef.current) return;
+    const engine = createAnimationEngine(currentMode);
     engine.init(animContainerRef.current, currentAlbum.photos.map(p => p.url));
     engineRef.current = engine;
-    setCurrentPhotoIndex(0);
     return () => { engine.destroy(); engineRef.current = null; };
-  }, [currentAlbum, isGridMode]);
+  }, [currentAlbum, isGridMode, isThreeMode, currentMode]);
 
   // 翻页函数
   const navigatePhoto = useCallback((direction: 'next' | 'prev') => {
-    if (!currentAlbum || isAnimating || !engineRef.current || !animContainerRef.current) return;
+    if (!currentAlbum || isAnimating) return;
     const photos = currentAlbum.photos;
     if (photos.length <= 1) return;
-    setIsAnimating(true);
-    engineRef.current.transition({
-      images: photos.map(p => p.url),
-      currentIndex: currentPhotoIndex,
-      direction,
-      container: animContainerRef.current,
-      onComplete: () => {
-        setCurrentPhotoIndex(prev =>
-          direction === 'next'
-            ? (prev + 1) % photos.length
-            : (prev - 1 + photos.length) % photos.length
-        );
-        setIsAnimating(false);
-      }
-    });
-  }, [currentAlbum, currentPhotoIndex, isAnimating]);
+
+    const nextIdx = direction === 'next'
+      ? (currentPhotoIndex + 1) % photos.length
+      : (currentPhotoIndex - 1 + photos.length) % photos.length;
+
+    if (isThreeMode) {
+      // Three.js 模式
+      setNextPhotoIndex(nextIdx);
+      setThreeDirection(direction);
+      setThreeTransitioning(true);
+      setIsAnimating(true);
+    } else if (engineRef.current && animContainerRef.current) {
+      // CSS 动画模式
+      setIsAnimating(true);
+      engineRef.current.transition({
+        images: photos.map(p => p.url),
+        currentIndex: currentPhotoIndex,
+        direction,
+        container: animContainerRef.current,
+        onComplete: () => {
+          setCurrentPhotoIndex(nextIdx);
+          setIsAnimating(false);
+        },
+      });
+    }
+  }, [currentAlbum, currentPhotoIndex, isAnimating, isThreeMode]);
+
+  const handleThreeTransitionEnd = useCallback(() => {
+    if (nextPhotoIndex !== null) {
+      setCurrentPhotoIndex(nextPhotoIndex);
+      setNextPhotoIndex(null);
+    }
+    setThreeTransitioning(false);
+    setIsAnimating(false);
+  }, [nextPhotoIndex]);
 
   // 键盘导航
   useEffect(() => {
     if (!currentAlbum || isGridMode) return;
     const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowRight' || e.key === 'ArrowDown') navigatePhoto('next');
-      if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') navigatePhoto('prev');
+      if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { e.preventDefault(); navigatePhoto('next'); }
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { e.preventDefault(); navigatePhoto('prev'); }
       if (e.key === 'Escape') setCurrentAlbum(null);
     };
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
   }, [currentAlbum, isGridMode, navigatePhoto]);
 
-  // 鼠标/触摸滑动切换
+  // 鼠标/触摸滑动切换（自适应阈值）
   const handlePointerDown = (e: React.PointerEvent) => {
-    touchStartRef.current = { x: e.clientX, y: e.clientY };
+    touchStartRef.current = { x: e.clientX, y: e.clientY, time: Date.now() };
   };
 
   const handlePointerUp = (e: React.PointerEvent) => {
     if (!touchStartRef.current || isAnimating) return;
     const dx = e.clientX - touchStartRef.current.x;
     const dy = e.clientY - touchStartRef.current.y;
-    const threshold = Math.max(50, window.innerWidth * 0.08); // 自适应阈值：8% 屏宽或 50px
+    const elapsed = Date.now() - touchStartRef.current.time;
 
-    // 水平滑动优先
-    if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > threshold) {
+    // 自适应阈值：8% 屏宽或 50px，快速滑动降低阈值
+    const baseThreshold = Math.max(50, window.innerWidth * 0.08);
+    const threshold = elapsed < 300 ? baseThreshold * 0.5 : baseThreshold;
+
+    // 水平滑动优先，且水平位移需明显大于垂直
+    if (Math.abs(dx) > Math.abs(dy) * 1.2 && Math.abs(dx) > threshold) {
       navigatePhoto(dx > 0 ? 'prev' : 'next');
     }
     touchStartRef.current = null;
@@ -112,6 +153,9 @@ export default function PhotoWallClient() {
     setCurrentAlbum(album);
     setCurrentPhotoIndex(0);
     setIsGridMode(false);
+    setIsAnimating(false);
+    setThreeTransitioning(false);
+    setNextPhotoIndex(null);
   };
 
   // 离开相册
@@ -119,10 +163,34 @@ export default function PhotoWallClient() {
     setCurrentAlbum(null);
     setIsGridMode(false);
     setCurrentPhotoIndex(0);
+    setIsAnimating(false);
   };
 
-  const currentMode = currentAlbum?.animationMode || 'spatial-rift';
-  const modeInfo = ANIMATION_MODES.find(m => m.value === currentMode);
+  // 渲染 Three.js 场景
+  const renderThreeScene = () => {
+    if (!currentAlbum) return null;
+    const photos = currentAlbum.photos;
+    const currentUrl = photos[currentPhotoIndex]?.url;
+    const nextUrl = nextPhotoIndex !== null ? photos[nextPhotoIndex]?.url : null;
+
+    const commonProps = {
+      imageUrl: currentUrl,
+      nextImageUrl: nextUrl,
+      isTransitioning: threeTransitioning,
+      onTransitionEnd: handleThreeTransitionEnd,
+    };
+
+    switch (currentMode) {
+      case 'magic-cube':
+        return <Suspense fallback={<ThreeFallback />}><MagicCubeScene {...commonProps} direction={threeDirection} /></Suspense>;
+      case 'liquid-glass':
+        return <Suspense fallback={<ThreeFallback />}><LiquidGlassScene {...commonProps} /></Suspense>;
+      case 'infinite-depth':
+        return <Suspense fallback={<ThreeFallback />}><InfiniteDepthScene images={photos.map(p => p.url)} currentIndex={currentPhotoIndex} nextIndex={nextPhotoIndex} {...commonProps} /></Suspense>;
+      default:
+        return null;
+    }
+  };
 
   return (
     <div className="min-h-screen relative pb-32">
@@ -240,28 +308,33 @@ export default function PhotoWallClient() {
 
               {/* 动画模式 / 网格模式 */}
               {!isGridMode ? (
-                /* ===== 动画查看器 ===== */
                 <div className="relative">
                   <div
                     ref={animContainerRef}
-                    onPointerDown={handlePointerDown}
-                    onPointerUp={handlePointerUp}
+                    onPointerDown={!isThreeMode ? handlePointerDown : undefined}
+                    onPointerUp={!isThreeMode ? handlePointerUp : undefined}
                     className="w-full aspect-video max-h-[70vh] bg-black/90 dark:bg-black rounded-3xl overflow-hidden border border-white/10 shadow-2xl select-none"
-                    style={{ touchAction: 'pan-y' }}
+                    style={{ touchAction: 'pan-y', position: 'relative' }}
                   >
-                    {/* 当前图片预览（非 Three.js 动画时显示） */}
-                    {currentAlbum.photos[currentPhotoIndex] && (
-                      <div className="absolute inset-0 flex items-center justify-center p-8">
-                        <img
-                          src={currentAlbum.photos[currentPhotoIndex].url}
-                          alt={currentAlbum.photos[currentPhotoIndex].caption || ''}
-                          className="max-w-full max-h-full object-contain rounded-2xl shadow-2xl transition-transform duration-300"
-                          style={{ transform: hoveredIndex === currentPhotoIndex ? 'scale(1.03)' : 'scale(1)' }}
-                          onMouseEnter={() => setHoveredIndex(currentPhotoIndex)}
-                          onMouseLeave={() => setHoveredIndex(null)}
-                          draggable={false}
-                        />
-                      </div>
+                    {/* Three.js 场景 */}
+                    {isThreeMode ? (
+                      renderThreeScene()
+                    ) : (
+                      /* CSS 动画模式的静态图（引擎会覆盖其上） */
+                      currentAlbum.photos[currentPhotoIndex] && (
+                        <div className="absolute inset-0 flex items-center justify-center p-8">
+                          <img
+                            data-react-static
+                            src={currentAlbum.photos[currentPhotoIndex].url}
+                            alt={currentAlbum.photos[currentPhotoIndex].caption || ''}
+                            className="max-w-full max-h-full object-contain rounded-2xl shadow-2xl transition-transform duration-300"
+                            style={{ transform: hoveredIndex === currentPhotoIndex ? 'scale(1.03)' : 'scale(1)' }}
+                            onMouseEnter={() => setHoveredIndex(currentPhotoIndex)}
+                            onMouseLeave={() => setHoveredIndex(null)}
+                            draggable={false}
+                          />
+                        </div>
+                      )
                     )}
                   </div>
 
@@ -271,14 +344,14 @@ export default function PhotoWallClient() {
                       <button
                         onClick={() => navigatePhoto('prev')}
                         disabled={isAnimating}
-                        className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/20 dark:bg-slate-800/60 backdrop-blur-md border border-white/30 rounded-full flex items-center justify-center text-white hover:bg-white/40 transition-all disabled:opacity-30 z-10"
+                        className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/20 dark:bg-slate-800/60 backdrop-blur-md border border-white/30 rounded-full flex items-center justify-center text-white hover:bg-white/40 transition-all disabled:opacity-30 z-20"
                       >
                         <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" /></svg>
                       </button>
                       <button
                         onClick={() => navigatePhoto('next')}
                         disabled={isAnimating}
-                        className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/20 dark:bg-slate-800/60 backdrop-blur-md border border-white/30 rounded-full flex items-center justify-center text-white hover:bg-white/40 transition-all disabled:opacity-30 z-10"
+                        className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/20 dark:bg-slate-800/60 backdrop-blur-md border border-white/30 rounded-full flex items-center justify-center text-white hover:bg-white/40 transition-all disabled:opacity-30 z-20"
                       >
                         <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" /></svg>
                       </button>
@@ -286,7 +359,7 @@ export default function PhotoWallClient() {
                   )}
 
                   {/* 底部照片指示器 + 描述 */}
-                  <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex flex-col items-center gap-3 z-10">
+                  <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex flex-col items-center gap-3 z-20">
                     {currentAlbum.photos[currentPhotoIndex]?.caption && (
                       <div className="px-6 py-2 bg-white/10 backdrop-blur-md border border-white/20 rounded-full text-white text-sm font-medium">
                         {currentAlbum.photos[currentPhotoIndex].caption}
@@ -298,7 +371,23 @@ export default function PhotoWallClient() {
                           key={i}
                           onClick={() => {
                             if (i === currentPhotoIndex || isAnimating) return;
-                            navigatePhoto(i > currentPhotoIndex ? 'next' : 'prev');
+                            // 跳转到指定照片
+                            const direction = i > currentPhotoIndex ? 'next' : 'prev';
+                            if (isThreeMode) {
+                              setNextPhotoIndex(i);
+                              setThreeDirection(direction);
+                              setThreeTransitioning(true);
+                              setIsAnimating(true);
+                            } else if (engineRef.current && animContainerRef.current) {
+                              setIsAnimating(true);
+                              engineRef.current.transition({
+                                images: currentAlbum.photos.map(p => p.url),
+                                currentIndex: currentPhotoIndex,
+                                direction,
+                                container: animContainerRef.current,
+                                onComplete: () => { setCurrentPhotoIndex(i); setIsAnimating(false); },
+                              });
+                            }
                           }}
                           className={`w-2 h-2 rounded-full transition-all ${i === currentPhotoIndex ? 'bg-white w-6' : 'bg-white/30 hover:bg-white/50'}`}
                         />
@@ -331,24 +420,27 @@ export default function PhotoWallClient() {
               )}
 
               {/* 右下角模式切换滑块 */}
-              <div className="fixed bottom-8 right-8 z-50">
-                <div className="bg-white/20 dark:bg-slate-800/40 backdrop-blur-xl border border-white/30 dark:border-white/10 rounded-2xl p-3 shadow-xl flex items-center gap-3">
-                  <span className={`text-xs font-bold transition-colors ${!isGridMode ? 'text-indigo-500' : 'text-slate-400'}`}>
-                    {modeInfo?.icon || '🌌'} 动画
-                  </span>
-                  <button
-                    onClick={() => setIsGridMode(!isGridMode)}
-                    className={`relative w-14 h-7 rounded-full transition-all duration-300 ${isGridMode ? 'bg-indigo-500' : 'bg-slate-400 dark:bg-slate-600'}`}
-                  >
-                    <div className={`absolute top-0.5 w-6 h-6 bg-white rounded-full shadow-md transition-all duration-300 ${isGridMode ? 'left-7.5 translate-x-0' : 'left-0.5'}`}
-                      style={{ left: isGridMode ? '30px' : '2px' }}
-                    />
-                  </button>
-                  <span className={`text-xs font-bold transition-colors ${isGridMode ? 'text-indigo-500' : 'text-slate-400'}`}>
-                    ⊞ 网格
-                  </span>
+              {currentAlbum.photos.length > 0 && (
+                <div className="fixed bottom-8 right-8 z-50">
+                  <div className="bg-white/20 dark:bg-slate-800/40 backdrop-blur-xl border border-white/30 dark:border-white/10 rounded-2xl p-3 shadow-xl flex items-center gap-3">
+                    <span className={`text-xs font-bold transition-colors ${!isGridMode ? 'text-indigo-500' : 'text-slate-400'}`}>
+                      {modeInfo?.icon || '🌌'} 动画
+                    </span>
+                    <button
+                      onClick={() => setIsGridMode(!isGridMode)}
+                      className={`relative w-14 h-7 rounded-full transition-all duration-300 ${isGridMode ? 'bg-indigo-500' : 'bg-slate-400 dark:bg-slate-600'}`}
+                    >
+                      <div
+                        className="absolute top-0.5 w-6 h-6 bg-white rounded-full shadow-md transition-all duration-300"
+                        style={{ left: isGridMode ? '30px' : '2px' }}
+                      />
+                    </button>
+                    <span className={`text-xs font-bold transition-colors ${isGridMode ? 'text-indigo-500' : 'text-slate-400'}`}>
+                      ⊞ 网格
+                    </span>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           )}
         </div>
