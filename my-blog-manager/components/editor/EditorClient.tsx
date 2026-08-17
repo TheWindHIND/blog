@@ -14,6 +14,7 @@ export default function EditorClient({ historyPostTags, historyChatterTags, hist
   const docType = (searchParams.get('type') as 'post' | 'chatter' | 'about') || 'post';
 
   const [title, setTitle] = useState('');
+  const [titleColor, setTitleColor] = useState<string>('');
   const [tags, setTags] = useState<string[]>([]);
   const [cover, setCover] = useState('');
   const [summary, setSummary] = useState('');
@@ -125,6 +126,8 @@ export default function EditorClient({ historyPostTags, historyChatterTags, hist
           ref={editorRef}
           title={title}
           setTitle={setTitle}
+          titleColor={titleColor}
+          setTitleColor={setTitleColor}
           initialContent={content}
           onOpenImageTool={() => {
             setImgToolTarget('editor');

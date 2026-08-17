@@ -22,6 +22,7 @@ function ThreeFallback() {
 export default function PhotoWallClient() {
   const [currentAlbum, setCurrentAlbum] = useState<Album | null>(null);
   const [selectedImage, setSelectedImage] = useState<{ url: string; caption?: string } | null>(null);
+  const [viewerIndex, setViewerIndex] = useState<number>(0); // 全屏查看器的图片索引
   const [searchQuery, setSearchQuery] = useState('');
   const [activeQuery, setActiveQuery] = useState('');
   const [isTransitioning, setIsTransitioning] = useState(false);
@@ -97,8 +98,12 @@ export default function PhotoWallClient() {
         direction,
         container: animContainerRef.current,
         onComplete: () => {
+          // 关键修复：先更新索引，再取消动画锁定
           setCurrentPhotoIndex(nextIdx);
-          setIsAnimating(false);
+          // 使用 requestAnimationFrame 确保 React 已渲染新图片后再解锁
+          requestAnimationFrame(() => {
+            setIsAnimating(false);
+          });
         },
       });
     }
@@ -113,17 +118,36 @@ export default function PhotoWallClient() {
     setIsAnimating(false);
   }, [nextPhotoIndex]);
 
-  // 键盘导航
+  // 键盘导航（包括全屏查看器）
   useEffect(() => {
-    if (!currentAlbum || isGridMode) return;
     const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { e.preventDefault(); navigatePhoto('next'); }
-      if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { e.preventDefault(); navigatePhoto('prev'); }
-      if (e.key === 'Escape') setCurrentAlbum(null);
+      // 全屏查看器导航
+      if (selectedImage && currentAlbum) {
+        if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+          e.preventDefault();
+          navigateViewer('next');
+          return;
+        }
+        if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+          e.preventDefault();
+          navigateViewer('prev');
+          return;
+        }
+        if (e.key === 'Escape') {
+          setSelectedImage(null);
+          return;
+        }
+      }
+      // 相册内导航
+      if (currentAlbum && !isGridMode && !selectedImage) {
+        if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { e.preventDefault(); navigatePhoto('next'); }
+        if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { e.preventDefault(); navigatePhoto('prev'); }
+        if (e.key === 'Escape') setCurrentAlbum(null);
+      }
     };
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
-  }, [currentAlbum, isGridMode, navigatePhoto]);
+  }, [currentAlbum, isGridMode, navigatePhoto, selectedImage, viewerIndex]);
 
   // 鼠标/触摸滑动切换（自适应阈值）
   const handlePointerDown = (e: React.PointerEvent) => {
@@ -164,6 +188,25 @@ export default function PhotoWallClient() {
     setIsGridMode(false);
     setCurrentPhotoIndex(0);
     setIsAnimating(false);
+  };
+
+  // 全屏查看器导航
+  const navigateViewer = useCallback((direction: 'next' | 'prev') => {
+    if (!currentAlbum) return;
+    const photos = currentAlbum.photos;
+    if (photos.length <= 1) return;
+    const newIdx = direction === 'next'
+      ? (viewerIndex + 1) % photos.length
+      : (viewerIndex - 1 + photos.length) % photos.length;
+    setViewerIndex(newIdx);
+    setSelectedImage({ url: photos[newIdx].url, caption: photos[newIdx].caption });
+  }, [currentAlbum, viewerIndex]);
+
+  // 打开全屏查看器（从动画模式或网格模式）
+  const openViewer = (index: number) => {
+    if (!currentAlbum) return;
+    setViewerIndex(index);
+    setSelectedImage({ url: currentAlbum.photos[index].url, caption: currentAlbum.photos[index].caption });
   };
 
   // 渲染 Three.js 场景
@@ -313,7 +356,8 @@ export default function PhotoWallClient() {
                     ref={animContainerRef}
                     onPointerDown={!isThreeMode ? handlePointerDown : undefined}
                     onPointerUp={!isThreeMode ? handlePointerUp : undefined}
-                    className="w-full aspect-video max-h-[70vh] bg-black/90 dark:bg-black rounded-3xl overflow-hidden border border-white/10 shadow-2xl select-none"
+                    onDoubleClick={() => openViewer(currentPhotoIndex)}
+                    className="w-full aspect-video max-h-[75vh] bg-black/90 dark:bg-black rounded-3xl overflow-hidden border border-white/10 shadow-2xl select-none cursor-pointer"
                     style={{ touchAction: 'pan-y', position: 'relative' }}
                   >
                     {/* Three.js 场景 */}
@@ -322,12 +366,12 @@ export default function PhotoWallClient() {
                     ) : (
                       /* CSS 动画模式的静态图（引擎会覆盖其上） */
                       currentAlbum.photos[currentPhotoIndex] && (
-                        <div className="absolute inset-0 flex items-center justify-center p-8">
+                        <div className="absolute inset-0 flex items-center justify-center p-4">
                           <img
                             data-react-static
                             src={currentAlbum.photos[currentPhotoIndex].url}
                             alt={currentAlbum.photos[currentPhotoIndex].caption || ''}
-                            className="max-w-full max-h-full object-contain rounded-2xl shadow-2xl transition-transform duration-300"
+                            className="w-full h-full object-contain rounded-2xl shadow-2xl transition-transform duration-300"
                             style={{ transform: hoveredIndex === currentPhotoIndex ? 'scale(1.03)' : 'scale(1)' }}
                             onMouseEnter={() => setHoveredIndex(currentPhotoIndex)}
                             onMouseLeave={() => setHoveredIndex(null)}
@@ -371,7 +415,6 @@ export default function PhotoWallClient() {
                           key={i}
                           onClick={() => {
                             if (i === currentPhotoIndex || isAnimating) return;
-                            // 跳转到指定照片
                             const direction = i > currentPhotoIndex ? 'next' : 'prev';
                             if (isThreeMode) {
                               setNextPhotoIndex(i);
@@ -385,13 +428,20 @@ export default function PhotoWallClient() {
                                 currentIndex: currentPhotoIndex,
                                 direction,
                                 container: animContainerRef.current,
-                                onComplete: () => { setCurrentPhotoIndex(i); setIsAnimating(false); },
+                                onComplete: () => { setCurrentPhotoIndex(i); requestAnimationFrame(() => setIsAnimating(false)); },
                               });
                             }
                           }}
                           className={`w-2 h-2 rounded-full transition-all ${i === currentPhotoIndex ? 'bg-white w-6' : 'bg-white/30 hover:bg-white/50'}`}
                         />
                       ))}
+                    </div>
+                  </div>
+
+                  {/* 双击提示 */}
+                  <div className="absolute top-4 right-4 z-20">
+                    <div className="px-3 py-1.5 bg-white/10 backdrop-blur-md border border-white/20 rounded-full text-white/60 text-[10px] font-bold tracking-wider">
+                      双击放大查看
                     </div>
                   </div>
                 </div>
@@ -401,7 +451,7 @@ export default function PhotoWallClient() {
                   {currentAlbum.photos.map((photo, index) => (
                     <div
                       key={`${photo.url}-${index}`}
-                      onClick={() => setSelectedImage(photo)}
+                      onClick={() => openViewer(index)}
                       className="break-inside-avoid relative group rounded-2xl overflow-hidden cursor-zoom-in shadow-lg bg-white/20 dark:bg-slate-800/20 border border-white/30 dark:border-white/10 transition-all duration-500 hover:scale-[1.02] hover:shadow-2xl hover:shadow-indigo-500/20 animate-fade-in-up"
                       style={{ animationDelay: `${index * 50}ms` }}
                     >
@@ -446,18 +496,101 @@ export default function PhotoWallClient() {
         </div>
       </PageTransition>
 
-      {/* 全屏图片查看 */}
-      {selectedImage && (
-        <div className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-2xl flex flex-col items-center justify-center p-4 sm:p-10 cursor-zoom-out animate-fade-in" onClick={() => setSelectedImage(null)}>
-          <button className="absolute top-6 right-6 text-white/50 hover:text-white transition-colors bg-white/10 hover:bg-white/20 rounded-full p-2">
-            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-          </button>
-          <img src={selectedImage.url} alt={selectedImage.caption || ''} className="max-w-full max-h-[85vh] object-contain rounded-2xl shadow-2xl" onClick={(e) => e.stopPropagation()} />
-          {selectedImage.caption && (
-            <div className="absolute bottom-10 px-6 py-3 bg-white/10 backdrop-blur-md border border-white/10 rounded-full text-white text-sm font-medium tracking-wide shadow-2xl">
-              {selectedImage.caption}
+      {/* ===== 全屏图片查看器（增强版：双击放大 + 左右导航） ===== */}
+      {selectedImage && currentAlbum && (
+        <div
+          className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-2xl flex flex-col items-center justify-center animate-fade-in"
+          onClick={(e) => { if (e.target === e.currentTarget) setSelectedImage(null); }}
+        >
+          {/* 顶部工具栏 */}
+          <div className="absolute top-0 left-0 right-0 z-30 flex items-center justify-between px-6 py-4 bg-gradient-to-b from-black/60 to-transparent">
+            <div className="text-white/60 text-sm font-bold">
+              {viewerIndex + 1} / {currentAlbum.photos.length}
+            </div>
+            <div className="flex items-center gap-2">
+              {selectedImage.caption && (
+                <div className="px-4 py-1.5 bg-white/10 backdrop-blur-md border border-white/20 rounded-full text-white text-sm font-medium mr-2">
+                  {selectedImage.caption}
+                </div>
+              )}
+              <button
+                onClick={() => setSelectedImage(null)}
+                className="text-white/50 hover:text-white transition-colors bg-white/10 hover:bg-white/20 rounded-full p-2"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          {/* 左导航按钮 */}
+          {currentAlbum.photos.length > 1 && (
+            <button
+              onClick={(e) => { e.stopPropagation(); navigateViewer('prev'); }}
+              className="absolute left-4 top-1/2 -translate-y-1/2 z-30 w-14 h-14 bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/20 rounded-full flex items-center justify-center text-white transition-all hover:scale-110 active:scale-95"
+            >
+              <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+          )}
+
+          {/* 图片主体 */}
+          <img
+            src={selectedImage.url}
+            alt={selectedImage.caption || ''}
+            className="max-w-[90vw] max-h-[80vh] object-contain rounded-2xl shadow-2xl select-none transition-transform duration-200"
+            onClick={(e) => e.stopPropagation()}
+            draggable={false}
+          />
+
+          {/* 右导航按钮 */}
+          {currentAlbum.photos.length > 1 && (
+            <button
+              onClick={(e) => { e.stopPropagation(); navigateViewer('next'); }}
+              className="absolute right-4 top-1/2 -translate-y-1/2 z-30 w-14 h-14 bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/20 rounded-full flex items-center justify-center text-white transition-all hover:scale-110 active:scale-95"
+            >
+              <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          )}
+
+          {/* 底部缩略图导航条 */}
+          {currentAlbum.photos.length > 1 && (
+            <div className="absolute bottom-0 left-0 right-0 z-30 bg-gradient-to-t from-black/60 to-transparent pt-12 pb-4">
+              <div className="flex items-center justify-center gap-2 px-4 overflow-x-auto no-scrollbar">
+                {currentAlbum.photos.map((photo, i) => (
+                  <button
+                    key={i}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setViewerIndex(i);
+                      setSelectedImage({ url: photo.url, caption: photo.caption });
+                    }}
+                    className={`flex-shrink-0 w-14 h-10 rounded-lg overflow-hidden border-2 transition-all duration-200 ${
+                      i === viewerIndex
+                        ? 'border-white scale-110 shadow-lg shadow-white/20'
+                        : 'border-white/20 opacity-50 hover:opacity-80 hover:scale-105'
+                    }`}
+                  >
+                    <img src={photo.url} alt="" className="w-full h-full object-cover" />
+                  </button>
+                ))}
+              </div>
             </div>
           )}
+
+          {/* 键盘提示 */}
+          <div className="absolute bottom-20 left-1/2 -translate-x-1/2 z-30 flex items-center gap-3 text-white/30 text-[10px] font-bold tracking-wider">
+            <span className="px-2 py-0.5 border border-white/20 rounded">←</span>
+            <span className="px-2 py-0.5 border border-white/20 rounded">→</span>
+            <span className="ml-1">键盘切换</span>
+            <span className="mx-2">|</span>
+            <span className="px-2 py-0.5 border border-white/20 rounded">ESC</span>
+            <span className="ml-1">关闭</span>
+          </div>
         </div>
       )}
 
