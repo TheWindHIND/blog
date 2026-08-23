@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import BackButton from '../../components/BackButton';
 import { projectsData as initialProjects, Project } from '../../data/projects';
@@ -14,6 +14,22 @@ export default function ProjectsBoard() {
 
   // 1. 核心状态
   const [editableProjects, setEditableProjects] = useState<Project[]>(initialProjects);
+
+  // 从 API 动态加载最新数据
+  useEffect(() => {
+    const loadLatest = async () => {
+      try {
+        const configRes = await fetch(`/backend_config.json?t=${Date.now()}`);
+        const configData = await configRes.json();
+        const res = await fetch(`http://127.0.0.1:${configData.api_port}/api/projects/list?t=${Date.now()}`);
+        const data = await res.json();
+        if (data.success && Array.isArray(data.projects)) {
+          setEditableProjects(data.projects);
+        }
+      } catch (e) { /* 静默失败，使用静态 import */ }
+    };
+    loadLatest();
+  }, []);
   const [searchQuery, setSearchQuery] = useState("");
 
   // 2. 弹窗状态

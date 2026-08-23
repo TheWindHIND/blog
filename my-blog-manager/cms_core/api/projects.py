@@ -1,4 +1,5 @@
 import os
+import re
 import json
 from fastapi import APIRouter, Request
 
@@ -10,6 +11,27 @@ PROJECT_ROOT = os.path.abspath(os.path.join(CURRENT_API_DIR, "..", ".."))  # 回
 
 # 👇 就是这里！直接指向 data/projects.ts
 TARGET_FILE = os.path.join(PROJECT_ROOT, "data", "projects.ts")
+
+
+@router.get("/list")
+async def list_projects():
+    """读取 data/projects.ts 文件，解析并返回最新的项目数据。"""
+    try:
+        if not os.path.exists(TARGET_FILE):
+            return {"success": True, "projects": []}
+
+        with open(TARGET_FILE, "r", encoding="utf-8") as f:
+            content = f.read()
+
+        match = re.search(r'export\s+const\s+projectsData\s*:\s*Project\[\]\s*=\s*(\[[\s\S]*?\]);', content)
+        if not match:
+            return {"success": True, "projects": []}
+
+        json_str = match.group(1)
+        projects_data = json.loads(json_str)
+        return {"success": True, "projects": projects_data}
+    except Exception as e:
+        return {"success": False, "message": f"读取失败: {str(e)}", "projects": []}
 
 
 @router.post("/sync")

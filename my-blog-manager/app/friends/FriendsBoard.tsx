@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import BackButton from '../../components/BackButton';
 import { friendsData as initialFriends, Friend } from '../../data/friends';
@@ -28,6 +28,22 @@ export default function FriendsBoard() {
   const { showToast } = useToast();
 
   const [editableFriends, setEditableFriends] = useState<Friend[]>(initialFriends);
+
+  // 从 API 动态加载最新数据
+  useEffect(() => {
+    const loadLatest = async () => {
+      try {
+        const configRes = await fetch(`/backend_config.json?t=${Date.now()}`);
+        const configData = await configRes.json();
+        const res = await fetch(`http://127.0.0.1:${configData.api_port}/api/friends/list?t=${Date.now()}`);
+        const data = await res.json();
+        if (data.success && Array.isArray(data.friends)) {
+          setEditableFriends(data.friends);
+        }
+      } catch (e) { /* 静默失败，使用静态 import */ }
+    };
+    loadLatest();
+  }, []);
 
   const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; id: string | null; name: string | null }>({ isOpen: false, id: null, name: null });
   const [friendModal, setFriendModal] = useState<{ isOpen: boolean; mode: 'add' | 'edit'; data: Partial<Friend> }>({ isOpen: false, mode: 'add', data: {} });

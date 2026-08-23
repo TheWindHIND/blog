@@ -29,6 +29,27 @@ export default function PhotoWallPage() {
   const { addOperation } = useOperations();
   const { showToast } = useToast();
   const [editableAlbums, setEditableAlbums] = useState<Album[]>(initialAlbums);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // 从 API 动态加载最新数据，解决静态 import 与磁盘文件不同步的问题
+  useEffect(() => {
+    const loadLatestAlbums = async () => {
+      try {
+        const configRes = await fetch(`/backend_config.json?t=${Date.now()}`);
+        const configData = await configRes.json();
+        const res = await fetch(`http://127.0.0.1:${configData.api_port}/api/gallery/list?t=${Date.now()}`);
+        const data = await res.json();
+        if (data.success && Array.isArray(data.albums)) {
+          setEditableAlbums(data.albums);
+        }
+      } catch (e) {
+        // 静默失败，使用静态 import 的初始数据
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadLatestAlbums();
+  }, []);
 
   const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; type: 'album' | 'photo'; id?: string; photoIndex?: number; title: string }>({ isOpen: false, type: 'album', title: '' });
   const [albumModal, setAlbumModal] = useState<{ isOpen: boolean; mode: 'add' | 'edit'; data: any }>({ isOpen: false, mode: 'add', data: {} });
@@ -49,7 +70,7 @@ export default function PhotoWallPage() {
 
   const { matchedAlbums, matchedPhotos } = useMemo(() => {
     if (!activeQuery) return { matchedAlbums: editableAlbums, matchedPhotos: [] };
-    const ma = editableAlbums.filter(album => album.title.toLowerCase().includes(activeQuery) || album.description.toLowerCase().includes(activeQuery));
+    const ma = editableAlbums.filter(album => album.title.toLowerCase().includes(activeQuery) || (album.description || '').toLowerCase().includes(activeQuery));
     const mp = editableAlbums.flatMap(album => album.photos.map(p => ({ ...p, albumName: album.title }))).filter(photo => photo.caption?.toLowerCase().includes(activeQuery));
     return { matchedAlbums: ma, matchedPhotos: mp };
   }, [activeQuery, editableAlbums]);

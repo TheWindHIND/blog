@@ -1,4 +1,5 @@
 import os
+import re
 import json
 from fastapi import APIRouter, Request
 
@@ -13,6 +14,32 @@ PROJECT_ROOT = os.path.abspath(os.path.join(CURRENT_API_DIR, "..", ".."))
 
 # 🌟 根据你提供的位置，目标文件在项目根目录下的 data/albums.ts
 ALBUMS_TS_PATH = os.path.join(PROJECT_ROOT, "data", "albums.ts")
+
+
+@router.get("/list")
+async def list_albums():
+    """
+    读取 data/albums.ts 文件，解析并返回最新的相册数据。
+    解决后端页面使用静态 import 导致数据不同步的问题。
+    """
+    try:
+        if not os.path.exists(ALBUMS_TS_PATH):
+            return {"success": True, "albums": []}
+
+        with open(ALBUMS_TS_PATH, "r", encoding="utf-8") as f:
+            content = f.read()
+
+        # 从 TypeScript 文件中提取 JSON 数组
+        # 匹配 export const albums: Album[] = [...];
+        match = re.search(r'export\s+const\s+albums\s*:\s*Album\[\]\s*=\s*(\[[\s\S]*?\]);', content)
+        if not match:
+            return {"success": True, "albums": []}
+
+        json_str = match.group(1)
+        albums_data = json.loads(json_str)
+        return {"success": True, "albums": albums_data}
+    except Exception as e:
+        return {"success": False, "message": f"读取失败: {str(e)}", "albums": []}
 
 
 @router.post("/sync")

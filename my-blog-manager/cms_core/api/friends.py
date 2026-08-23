@@ -1,4 +1,5 @@
 import os
+import re
 import json
 from fastapi import APIRouter, Request
 
@@ -8,6 +9,27 @@ router = APIRouter()
 CURRENT_API_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.abspath(os.path.join(CURRENT_API_DIR, "..", ".."))
 FRIENDS_TS_PATH = os.path.join(PROJECT_ROOT, "data", "friends.ts")
+
+
+@router.get("/list")
+async def list_friends():
+    """读取 data/friends.ts 文件，解析并返回最新的友链数据。"""
+    try:
+        if not os.path.exists(FRIENDS_TS_PATH):
+            return {"success": True, "friends": []}
+
+        with open(FRIENDS_TS_PATH, "r", encoding="utf-8") as f:
+            content = f.read()
+
+        match = re.search(r'export\s+const\s+friendsData\s*:\s*Friend\[\]\s*=\s*(\[[\s\S]*?\]);', content)
+        if not match:
+            return {"success": True, "friends": []}
+
+        json_str = match.group(1)
+        friends_data = json.loads(json_str)
+        return {"success": True, "friends": friends_data}
+    except Exception as e:
+        return {"success": False, "message": f"读取失败: {str(e)}", "friends": []}
 
 
 @router.post("/sync")
