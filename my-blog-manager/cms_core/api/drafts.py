@@ -42,6 +42,7 @@ async def save_draft(request: Request):
         "id": draft_id,
         "type": payload.get("type", "post"),
         "title": payload.get("title", ""),
+        "titleColor": payload.get("titleColor", ""),
         "description": payload.get("description", ""),
         "content": payload.get("content", ""),
         "cover": payload.get("cover", ""),
@@ -247,7 +248,8 @@ async def sync_local_operations(request: Request):
                 "tags": data.get("tags", []),
                 "mood": data.get("mood", ""),
                 "cover": data.get("cover", ""),
-                "description": data.get("description", "")
+                "description": data.get("description", ""),
+                "titleColor": data.get("titleColor", "")
             }
             final_text = f"---\n{yaml.dump(fm, allow_unicode=True, sort_keys=False)}---\n\n{md_content}"
 

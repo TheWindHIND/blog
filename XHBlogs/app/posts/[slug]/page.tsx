@@ -105,6 +105,7 @@ async function getPostData(slug: string) {
     contentHtml: processedContent.toString(),
     toc: extractToc(content),
     title: data.title,
+    titleColor: data.titleColor || '',
     date: data.date,
     tags: data.tags && Array.isArray(data.tags) ? data.tags : [],
     cover: data.cover || siteConfig.defaultPostCover
@@ -144,7 +145,10 @@ export default async function Post({ params }: { params: Promise<{ slug: string 
               <BackButton />
 
               <header className="mb-6 md:mb-8 border-b border-slate-300/50 dark:border-slate-700 pb-5 md:pb-6 relative">
-                <h1 className="text-2xl md:text-4xl font-bold text-slate-900 dark:text-white mb-4 tracking-tight transition-colors duration-700 pr-16 md:pr-24 leading-snug">
+                <h1
+                  className="text-2xl md:text-4xl font-bold mb-4 tracking-tight transition-colors duration-700 pr-16 md:pr-24 leading-snug"
+                  style={postData.titleColor ? { color: postData.titleColor } : undefined}
+                >
                   {postData.title}
                 </h1>
 

@@ -50,6 +50,7 @@ export default function EditorClient({ historyPostTags, historyChatterTags, hist
           const data = await res.json();
           if (data.success) {
             setTitle(docType === 'about' ? '关于我' : (data.draft.title || ''));
+            setTitleColor(data.draft.titleColor || '');
             setTags(data.draft.tags || []);
             setCover(data.draft.cover || '');
             setSummary(data.draft.description || '');
@@ -76,6 +77,7 @@ export default function EditorClient({ historyPostTags, historyChatterTags, hist
       id: docType === 'about' ? 'about' : (currentDocId === 'new' ? null : currentDocId),
       type: docType,
       title: docType === 'about' ? '关于我' : title,
+      titleColor: titleColor || '',
       tags: docType === 'about' ? [] : tags,
       cover,
       mood: docType === 'chatter' ? mood : null,
