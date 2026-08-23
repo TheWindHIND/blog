@@ -49,13 +49,14 @@ export default function PhotoWallClient() {
     return { matchedAlbums, matchedPhotos };
   }, [activeQuery]);
 
-  const currentMode = (currentAlbum?.animationMode || 'spatial-rift') as AnimationMode;
+  const currentMode = (currentAlbum?.animationMode || 'none') as AnimationMode;
   const modeInfo = ANIMATION_MODES.find(m => m.value === currentMode);
 
-  // 初始化 CSS 动画引擎
+  // 初始化 CSS 动画引擎（'none' 模式不初始化）
   useEffect(() => {
     if (!currentAlbum || isGridMode || !animContainerRef.current) return;
     const engine = createAnimationEngine(currentMode);
+    if (!engine) { engineRef.current = null; return; }
     engine.init(animContainerRef.current, currentAlbum.photos.map(p => p.url));
     engineRef.current = engine;
     return () => { engine.destroy(); engineRef.current = null; };
@@ -71,20 +72,24 @@ export default function PhotoWallClient() {
       ? (currentPhotoIndex + 1) % photos.length
       : (currentPhotoIndex - 1 + photos.length) % photos.length;
 
-    if (engineRef.current && animContainerRef.current) {
-      setIsAnimating(true);
-      engineRef.current.transition({
-        images: photos.map(p => p.url),
-        currentIndex: currentPhotoIndex,
-        direction,
-        container: animContainerRef.current,
-        onComplete: () => {
-          setCurrentPhotoIndex(nextIdx);
-          requestAnimationFrame(() => setIsAnimating(false));
-        },
-      });
+    // 'none' 模式：直接切换，无动画
+    if (currentMode === 'none' || !engineRef.current || !animContainerRef.current) {
+      setCurrentPhotoIndex(nextIdx);
+      return;
     }
-  }, [currentAlbum, currentPhotoIndex, isAnimating]);
+
+    setIsAnimating(true);
+    engineRef.current.transition({
+      images: photos.map(p => p.url),
+      currentIndex: currentPhotoIndex,
+      direction,
+      container: animContainerRef.current,
+      onComplete: () => {
+        setCurrentPhotoIndex(nextIdx);
+        requestAnimationFrame(() => setIsAnimating(false));
+      },
+    });
+  }, [currentAlbum, currentPhotoIndex, isAnimating, currentMode]);
 
   // 滚轮交互：隐藏标题 + 最大化画面
   useEffect(() => {
@@ -387,16 +392,18 @@ export default function PhotoWallClient() {
                             onClick={() => {
                               if (i === currentPhotoIndex || isAnimating) return;
                               const direction = i > currentPhotoIndex ? 'next' : 'prev';
-                              if (engineRef.current && animContainerRef.current) {
-                                setIsAnimating(true);
-                                engineRef.current.transition({
-                                  images: currentAlbum.photos.map(p => p.url),
-                                  currentIndex: currentPhotoIndex,
-                                  direction,
-                                  container: animContainerRef.current,
-                                  onComplete: () => { setCurrentPhotoIndex(i); requestAnimationFrame(() => setIsAnimating(false)); },
-                                });
+                              if (currentMode === 'none' || !engineRef.current || !animContainerRef.current) {
+                                setCurrentPhotoIndex(i);
+                                return;
                               }
+                              setIsAnimating(true);
+                              engineRef.current.transition({
+                                images: currentAlbum.photos.map(p => p.url),
+                                currentIndex: currentPhotoIndex,
+                                direction,
+                                container: animContainerRef.current,
+                                onComplete: () => { setCurrentPhotoIndex(i); requestAnimationFrame(() => setIsAnimating(false)); },
+                              });
                             }}
                             className={`w-2 h-2 rounded-full transition-all ${i === currentPhotoIndex ? 'bg-white w-6' : 'bg-white/30 hover:bg-white/50'}`}
                           />

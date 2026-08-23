@@ -135,6 +135,7 @@ export default function PhotoWallPage() {
                   <label className="text-xs font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2 block">翻页动画效果</label>
                   <div className="grid grid-cols-3 gap-2">
                     {[
+                      { value: 'none', icon: '📷', label: '无动画' },
                       { value: 'spatial-rift', icon: '🌌', label: '时空裂隙' },
                       { value: 'card-flip', icon: '🃏', label: '卡片翻转' },
                       { value: 'slide-switch', icon: '➡️', label: '滑动切换' },
@@ -146,7 +147,7 @@ export default function PhotoWallPage() {
                         key={mode.value}
                         onClick={() => setAlbumModal({...albumModal, data: {...albumModal.data, animationMode: mode.value as any}})}
                         className={`flex flex-col items-center gap-1 py-2.5 px-1 rounded-xl border-2 transition-all text-center ${
-                          (albumModal.data.animationMode || 'spatial-rift') === mode.value
+                          (albumModal.data.animationMode || 'none') === mode.value
                             ? 'border-indigo-500 bg-indigo-500/10 dark:bg-indigo-500/20'
                             : 'border-transparent bg-slate-100 dark:bg-black/20 hover:border-slate-300 dark:hover:border-slate-600'
                         }`}

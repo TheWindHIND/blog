@@ -30,12 +30,28 @@ async def sync_gallery(request: Request):
         # 1. 序列化数据（确保中文不乱码，缩进漂亮）
         json_str = json.dumps(albums_data, ensure_ascii=False, indent=2)
 
-        # 2. 构造标准的 TypeScript 导出模板
-        # 🛡️ 这种方式不依赖于绝对路径，只要相对位置不变，哪里都能跑
+        # 2. 构造标准的 TypeScript 导出模板（包含 AnimationMode 类型）
         ts_content = (
             "// 🛡️ 本文件由 XingHuiSama 控制台自动生成，请勿手动修改\n"
-            "export interface Photo { url: string; caption?: string; }\n"
-            "export interface Album { id: string; title: string; description: string; cover: string; date: string; photos: Photo[]; }\n\n"
+            "export interface Photo { url: string; caption?: string; }\n\n"
+            "// 7 种模式（含无动画）\n"
+            "export type AnimationMode =\n"
+            "  | 'none'              // 无动画（默认网格展示）\n"
+            "  | 'spatial-rift'      // 时空裂隙\n"
+            "  | 'card-flip'         // 卡片翻转\n"
+            "  | 'slide-switch'      // 滑动切换\n"
+            "  | 'fade-zoom'         // 淡入缩放\n"
+            "  | 'page-turn'         // 仿真翻页\n"
+            "  | 'carousel-3d';      // 3D 走马灯\n\n"
+            "export interface Album {\n"
+            "  id: string;\n"
+            "  title: string;\n"
+            "  description?: string;\n"
+            "  cover: string;\n"
+            "  date: string;\n"
+            "  photos: Photo[];\n"
+            "  animationMode?: AnimationMode;\n"
+            "}\n\n"
             f"export const albums: Album[] = {json_str};"
         )
 

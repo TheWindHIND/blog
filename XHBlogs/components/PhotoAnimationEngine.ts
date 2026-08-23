@@ -11,6 +11,7 @@
  */
 
 export type AnimationMode =
+  | 'none'
   | 'spatial-rift'
   | 'card-flip'
   | 'slide-switch'
@@ -598,19 +599,21 @@ export class Carousel3DEngine implements AnimationEngine {
 /* ================================================================
  * 工厂 + 模式列表
  * ================================================================ */
-export function createAnimationEngine(mode: AnimationMode): AnimationEngine {
+export function createAnimationEngine(mode: AnimationMode): AnimationEngine | null {
   switch (mode) {
+    case 'none': return null;
     case 'spatial-rift': return new SpatialRiftEngine();
     case 'card-flip': return new CardFlipEngine();
     case 'slide-switch': return new SlideSwitchEngine();
     case 'fade-zoom': return new FadeZoomEngine();
     case 'page-turn': return new PageTurnEngine();
     case 'carousel-3d': return new Carousel3DEngine();
-    default: return new SpatialRiftEngine();
+    default: return null;
   }
 }
 
 export const ANIMATION_MODES: { value: AnimationMode; label: string; icon: string; desc: string }[] = [
+  { value: 'none', label: '无动画', icon: '📷', desc: '默认网格展示，点击放大查看' },
   { value: 'spatial-rift', label: '时空裂隙', icon: '🌌', desc: '动态模糊甩出 + 速度线粒子' },
   { value: 'card-flip', label: '卡片翻转', icon: '🃏', desc: '3D 正反面翻牌效果' },
   { value: 'slide-switch', label: '滑动切换', icon: '➡️', desc: '水平滑入滑出过渡' },
